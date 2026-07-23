@@ -1,0 +1,21 @@
+# Drop-in prose gate for any repo. Fails the build when high-severity
+# AI-tells land in your docs, posts, or README.
+#
+# Copy into .github/workflows/slop-gate.yml and edit the paths.
+
+name: slop-gate
+on:
+  pull_request:
+    paths: ["**/*.md"]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install git+https://github.com/REPLACE-OWNER/slop-no-more
+      # Exit code = number of high-severity findings, so this step IS the gate.
+      - run: slop scan docs/ README.md
