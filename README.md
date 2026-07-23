@@ -6,6 +6,11 @@ every catch.
 
 Stop asking AI to do the parts that don't require intelligence.
 
+AI drafts a large share of the text people publish now, and the fastest
+checks still get skipped because they feel like they need another AI.
+They don't. The failure patterns are finite and matchable, and a
+deterministic check beats a probabilistic promise every time it runs.
+
 ## What it is
 
 A scanner that reads prose and flags the patterns that make text read as
@@ -49,11 +54,6 @@ It runs on nothing but Python's standard library. No model, no API key, no
 network, no pip dependencies. Cloning the repo is the entire installation.
 
 ## Why it matters
-
-AI drafts a large share of the text people publish now, and the fastest
-checks still get skipped because they feel like they need another AI.
-They don't. The failure patterns are finite and matchable, and a
-deterministic check beats a probabilistic promise every time it runs.
 
 The experiment this repo is built on: take one real style rule, "don't use
 em dashes." Handed to a language model as a polite instruction and run
