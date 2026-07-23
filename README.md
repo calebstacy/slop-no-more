@@ -22,6 +22,17 @@ exactly which pattern fired. The exit code makes it a build gate.
 
 Run the experiment yourself: [examples/prompt_vs_regex.py](examples/prompt_vs_regex.py).
 
+## See it on real models
+
+The same 300-word announcement prompt, run against `gpt-5.5` and
+`claude-sonnet-5` through their raw APIs, three stages each: bare, with the
+skill's constraint block, and after the gate's repair pass. The bare drafts
+scored 38.83 and 49.18 weighted density, both HEAVY SLOP. The constraint
+block transformed the substance and barely moved the number (36.21 and
+42.86): both models violated constraints they had just been handed, inside
+the same response. The repair pass took both to 0.00, CLEAN. Captured
+outputs, findings, and the full protocol: [examples/side-by-side.md](examples/side-by-side.md).
+
 ## What makes this one different
 
 When I surveyed the field in July 2026 I found four families of tools:

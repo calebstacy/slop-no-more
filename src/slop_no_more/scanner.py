@@ -498,8 +498,15 @@ def scan_text(text, name="<text>"):
     if len(words) >= 250 or len(style_hits) >= 4:
         metrics["style_marker_per_1k"] = round(len(style_hits) * 1000 / n_words, 2)
 
+    # Rate metrics are meaningless on very short texts: one em dash in a
+    # 40-word note is 25 per 1k. Below the floor, rates are still reported in
+    # the fingerprint but never converted to findings (same design as the
+    # 250-word style-marker guard and the 8-sentence cadence guard).
+    RATE_FLOOR_WORDS = 120
     for metric, (med, high, direction, msg) in L3_RULES.items():
         if metric not in metrics:
+            continue
+        if metrics["words"] < RATE_FLOOR_WORDS and metric != "cadence_cv":
             continue
         v = metrics[metric]
         hit = None

@@ -142,7 +142,7 @@ def test_scan_file_roundtrip(tmp_path):
 
 # ---- dogfood: the repo's own prose passes its own gate ----
 
-@pytest.mark.parametrize("doc", ["README.md", "SKILL.md"])
+@pytest.mark.parametrize("doc", ["README.md", "SKILL.md", "examples/side-by-side.md"])
 def test_dogfood_docs_scan_clean(doc):
     report = scan_file(REPO / doc)
     assert report["high"] == 0, [

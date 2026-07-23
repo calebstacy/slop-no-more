@@ -18,4 +18,4 @@ jobs:
       - run: pip install -e . pytest
       - run: pytest -q
       # The gate gates itself: exit code = high-severity findings in our own docs.
-      - run: slop scan README.md SKILL.md
+      - run: slop scan README.md SKILL.md examples/side-by-side.md
