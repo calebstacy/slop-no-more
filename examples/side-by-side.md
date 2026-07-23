@@ -1,43 +1,54 @@
-# Side by side: the same prompt, with and without the skill
+# Side by side: the same prompt through three pipelines
 
-The same prompt went to two frontier models, and each ran three stages.
-Everything below is a real captured output, unedited except where the repair
-stage says exactly what changed. Every number comes from the scanner in this
-repo.
+The same prompt went through three different pipelines on two frontier
+models. This is a comparison of setups you could run today, and the point is
+what each one ships. Everything below is a real captured output, unedited
+except where the repair trail says exactly what changed. Every number comes
+from the scanner in this repo.
+
+**The pipelines.**
+
+- **Bare model.** The default: a prompt goes in, the draft goes out, nothing
+  checks it.
+- **Instructions only.** The same model with the rules riding along in the
+  prompt: the skill's full constraint block, prepended. This is the pipeline
+  that prompt packs and system-prompt style guides sell, and it is where
+  most anti-slop tooling stops. Nothing checks the output.
+- **The skill's loop.** What this repo installs: the same instructions, then
+  the scanner, then the edit rule attached to each finding, then a rescan.
+  The model drafts; the gate decides.
 
 **Protocol.** Run 2026-07-23 against `gpt-5.5-2026-04-23` (OpenAI API) and
 `claude-sonnet-5` (Anthropic API). Raw API calls, no system prompt, default
 sampling, one generation per cell, word counts near 300 so the distribution
-metrics have enough text to rate. The two conditions differ by one thing:
-the skill condition prepends the constraint block from [SKILL.md](../SKILL.md)
-build mode (the exact block is in the appendix). The repair stage is Mode 2:
-the drafting agent applies the edit rule attached to each finding, touches
-nothing else, and rescans.
+metrics have enough text to rate. The constraint block is in the appendix.
 
 **The prompt.** "Write a short blog post, roughly 300 words, announcing that
 your team just launched an AI-powered analytics dashboard."
 
 ## Scoreboard
 
-| Model | Bare | With constraints | After the gate |
+| Model | Bare model | Instructions only | The skill's loop |
 |---|---|---|---|
 | gpt-5.5 | 38.83 · HEAVY SLOP | 36.21 · HEAVY SLOP | 0.00 · CLEAN |
 | claude-sonnet-5 | 49.18 · HEAVY SLOP | 42.86 · HEAVY SLOP | 0.00 · CLEAN |
 
-Densities are weighted hits per 1,000 words. Read the trajectory before the
-prose: the constraint block barely moved the number on either vendor, and the
-gate moved it to zero. Instructions raise the pass rate. The test enforces.
+Densities are weighted hits per 1,000 words. The middle column is the
+industry's current answer, and it barely moves the number. Instructions
+raise the pass rate. The test enforces.
 
-## What the constraints did and did not fix
+## What instructions alone buy you
 
-The constrained drafts are much better texts. Both models invented a named
-speaker with a stake, concrete mechanism, an honest limitation and a real
-request for feedback. Substance transformed. The machine rhythms survived
-anyway: Claude used four em dashes immediately after an instruction that
-said no em dashes, and GPT blew through a one-triad budget five times.
-Both models violated constraints they had just been handed, inside the same
-response. That is the design fact this tool is built on, and it showed up
-on the first take.
+The instructions-only drafts are much better texts than the bare ones. Both
+models invented a named speaker with a stake, concrete mechanism, an honest
+limitation and a real request for feedback. Substance transformed. The
+machine rhythms survived anyway: Claude used four em dashes immediately
+after an instruction that said no em dashes, and GPT blew through a
+one-triad budget five times. Both models violated constraints they had just
+been handed, inside the same response. That is the design fact this tool is
+built on, and it showed up on the first take. A rules-in-the-prompt pipeline
+has no way to notice; the drafts read fine and shipped as fine, and only the
+scanner said otherwise.
 
 One more honest note: given no real product facts, a constrained model
 invents specific fiction. "Lena Ortiz at Brightlane" and "Priya at Fernwood"
@@ -50,7 +61,7 @@ supply the facts.
 
 ## GPT-5.5
 
-### Stage 1: bare
+### Bare model
 
 ```text
 ## Introducing Our New AI-Powered Analytics Dashboard
@@ -77,7 +88,10 @@ Scanner: HEAVY SLOP, 38.83. Em-dash density 12.94 per 1k, triad density
 unanchored "We built", sentence cadence nearly uniform (cv 0.382), AI
 style-marker density 19.42.
 
-### Stage 2: with the constraint block
+### Instructions only
+
+The same model, with the constraint block prepended and nothing checking
+the result.
 
 ```text
 I’m Lena Ortiz, product lead on the analytics team at Brightlane.
@@ -106,11 +120,12 @@ substance is transformed. The rhythm is not: triad density 17.24 (the
 budget was one), move-line ratio 12.5%, a benefit-verb collision, an
 unanchored "we built", cadence still uniform at 0.354.
 
-### Stage 3: after the gate (repairs per edit rule, then rescan)
+### The skill's loop
 
-Repairs applied: four triads broken by restructuring or losing the
+The same instructions, then the gate. The scanner flagged the draft above;
+the repair trail was: four triads broken by restructuring or losing the
 serial-comma rhythm; "we built for" renamed to the identifiable team; the
-benefit-verb collision reworded; two sentences varied for cadence.
+benefit-verb collision reworded; two sentences varied for cadence. Rescan:
 
 ```text
 I'm Lena Ortiz, product lead on the analytics team at Brightlane.
@@ -140,7 +155,7 @@ Scanner: CLEAN, 0.00. Zero high, zero medium, cadence 0.467.
 
 ## Claude Sonnet 5
 
-### Stage 1: bare
+### Bare model
 
 ```text
 # Introducing Our New AI-Powered Analytics Dashboard
@@ -180,7 +195,10 @@ Scanner: HEAVY SLOP, 49.18, four high-severity signals: a cataphoric
 "Here's what you can expect", em-dash density 6.56, triad density 9.84,
 and a 20% move-line ratio, plus unanchored "We Built" / "We designed".
 
-### Stage 2: with the constraint block
+### Instructions only
+
+The same model, with the constraint block prepended and nothing checking
+the result.
 
 ```text
 We shipped the new analytics dashboard this morning. I'm Priya, and I lead the data team at Fernwood — three of us have been building this since February.
@@ -207,12 +225,12 @@ mechanism, an honest limitation. Again the tics survived: a cataphoric
 "Here's what changed", the stock idiom "earns its keep", and em-dash
 density of 14.29 directly after an instruction banning em dashes.
 
-### Stage 3: after the gate (repairs per edit rule, then rescan)
+### The skill's loop
 
-Repairs applied: the cataphoric opener deleted and the content promoted;
-the stock idiom replaced with the literal statement; all four em dashes
-converted to commas or colons; the opening "We shipped" given its
-identifiable actor.
+The same instructions, then the gate. The repair trail on the draft above:
+the cataphoric opener deleted and the content promoted; the stock idiom
+replaced with the literal statement; all four em dashes converted to commas
+or colons; the opening "We shipped" given its identifiable actor. Rescan:
 
 ```text
 Fernwood shipped the new analytics dashboard this morning. I'm Priya, and I lead the data team: three of us have been building this since February.
@@ -240,9 +258,9 @@ Scanner: CLEAN, 0.00. Zero findings of any severity.
 
 ## Reproduce it
 
-The constraint block below is the exact text prepended in the skill
-condition. Swap in any model you have API access to; the scanner side needs
-no key at all:
+The constraint block below is the exact text prepended in the
+instructions-only and loop pipelines. Swap in any model you have API access
+to; the scanner side needs no key at all:
 
 ```bash
 python3 scripts/slop_scan.py your_output.txt
