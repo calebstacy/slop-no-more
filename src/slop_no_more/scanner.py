@@ -68,6 +68,8 @@ MOVES = [
             r"\b(?:that|this)\s+is\s+why\s+(?:I|we|you|the\s+\w+)\b",
             r"\bdeserves?\s+(?:naming|attention|a\s+closer\s+look|to\s+be\s+taken\s+seriously)\b",
             r"\b(?:so\s+)?here\s+is\s+the\s+\w+\s+you\s+actually\b",
+            # wild catch, 2026-07-23, LinkedIn collaborative article
+            r"\bhere\s+are\s+(?:some|a\s+few)\s+\w+\s+to\s+(?:consider|keep\s+in\s+mind)\b",
         ],
     },
     {
@@ -289,6 +291,9 @@ MOVES = [
         "edit_rule": "Name the actual relation between the sentences, or delete the transition and let the content make the turn.",
         "patterns": [
             r"(?m)^\s*(?:Moreover|Furthermore|Additionally|In\s+addition|Overall|Ultimately|Notably|Importantly|Crucially),\s+(?=\w)",
+            # same move mid-paragraph: sentence-initial after a full stop
+            # (wild catch, 2026-07-23, LinkedIn collaborative article)
+            r"[.!?]\s+(?:Moreover|Furthermore|Additionally|In\s+addition|Overall|Ultimately),\s+(?=\w)",
         ],
     },
     {
@@ -300,6 +305,8 @@ MOVES = [
             r"\b(?:this|the)\s+(?:essay|article|post|piece|guide|section)\s+(?:explores?|examines?|delves?\s+into|dives?\s+into|unpacks|highlights|discusses|aims?\s+to|will\s+(?:explore|examine|discuss|highlight|show))\b",
             r"\bin\s+this\s+(?:essay|article|post|piece|guide|section),?\s+(?:we|I|the\s+reader)\s+(?:will|can)\b",
             r"\bthis\s+piece\s+is\s+about\s+(?:how|why|what)\b",
+            # wild catch, 2026-07-23, LinkedIn collaborative article
+            r"\b[Rr]ead\s+on\s+to\s+(?:explore|learn|discover|find\s+out|see)\b",
         ],
     },
     {
@@ -348,7 +355,7 @@ LEXICAL = [
      "Delete. A written piece does not offer follow-up service."),
     ("in-conclusion", r"(?m)^\s*(?:In\s+conclusion|To\s+sum\s+up|In\s+summary)\b", "high",
      "Cut the recap. End on the last real point."),
-    ("diction-meme", r"\bdelve\b|\btapestry\b|\btestament\s+to\b|\bgame-?chang\w+\b|\bseamless(?:ly)?\b|\bsupercharge\b|\belevate\s+your\b|\bunlock\s+(?:the\s+)?(?:potential|power)\b", "medium",
+    ("diction-meme", r"\bdelve\b|\btapestry\b|\btestament\s+to\b|\bgame-?chang\w+\b|\bseamless(?:ly)?\b|\bsupercharge\b|\belevate\s+your\b|\bunlock\s+(?:the\s+)?(?:potential|power)\b|\bleverag(?:e|es|ed|ing)\b", "medium",
      "Use the plain verb or noun you would say out loud."),
     # reified "the gap" — a named human catch, 2026-07-02: recurs constantly in AI prose
     ("the-gap", r"\bthat'?s\s+the\s+gap\b|\bthat\s+gap\s+is\b|\bthe\s+gap\s+between\s+what\b|\bmind\s+the\s+gap\b", "high",

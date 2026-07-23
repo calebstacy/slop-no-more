@@ -35,6 +35,12 @@ handed, inside the same response. The loop finished both at 0.00, CLEAN.
 Captured outputs, findings, and the full protocol:
 [examples/side-by-side.md](examples/side-by-side.md).
 
+And one specimen nobody prompted: a page of AI-written text from the live
+web (a LinkedIn collaborative article, machine-authored by the platform's
+own disclosure), scanned as found at HEAVY SLOP and repaired to CLEAN at
+72 percent shorter with every fact intact:
+[examples/from-the-wild.md](examples/from-the-wild.md).
+
 ## What makes this one different
 
 When I surveyed the field in July 2026 I found four families of tools:

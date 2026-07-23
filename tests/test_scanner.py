@@ -102,6 +102,18 @@ def test_ignore_token_skips_line():
     assert not moves_found("Most teams love this pattern. slop-ignore")
 
 
+def test_wild_catch_costumes_2026_07_23():
+    # first wild specimen (a LinkedIn collaborative article) taught these
+    assert "transition-turnstile" in moves_found(
+        "Remote work saves money. Furthermore, it reduces commuting.")
+    assert "template-roadmap" in moves_found(
+        "Read on to explore the advantages of remote teamwork.")
+    assert "cataphoric-evaluation" in moves_found(
+        "Here are some tips to consider before you start.")
+    assert "diction-meme" in moves_found(
+        "Teams can leverage the diversity of their members.")
+
+
 def test_source_suppresses_anonymous_authority():
     text = "Research shows that readers skim (Nielsen 1997)."
     assert "anonymous-authority" not in moves_found(text)
@@ -142,7 +154,10 @@ def test_scan_file_roundtrip(tmp_path):
 
 # ---- dogfood: the repo's own prose passes its own gate ----
 
-@pytest.mark.parametrize("doc", ["README.md", "SKILL.md", "examples/side-by-side.md"])
+@pytest.mark.parametrize("doc", [
+    "README.md", "SKILL.md", "examples/side-by-side.md",
+    "examples/from-the-wild.md",
+])
 def test_dogfood_docs_scan_clean(doc):
     report = scan_file(REPO / doc)
     assert report["high"] == 0, [
