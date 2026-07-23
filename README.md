@@ -12,11 +12,15 @@ A scanner that reads prose and flags the patterns that make text read as
 AI-written: the giveaway words, and underneath them the rhetorical moves.
 It is built for the people who own the words: content designers, UX
 writers, editors and anyone shipping prose an AI helped draft.
-"Here's why this matters" and "the part worth sitting
-with" share no vocabulary and are the same move, an evaluation of a point
-the text hasn't made yet. Strings are unbounded; moves are few. AI slop is
-roughly a dozen moves wearing ten thousand costumes, so this tool detects
-at the move level, where paraphrase can't escape.
+
+The word-level tells are the easy part, and plenty of tools catch them.
+The moves are the deeper layer: what a sentence is doing, regardless of
+how it is phrased. Take "here's why this matters" and "the part worth
+sitting with." They share no vocabulary, and they are the same move,
+praising a point the text has not made yet. A banned-word list can't see
+that; a move pattern can. AI slop is roughly a dozen moves wearing ten
+thousand costumes, so this tool detects at the move level, where
+paraphrase can't escape.
 
 The move concept is borrowed, with credit, from applied linguistics. John
 Swales' move analysis (1990) treats a stretch of discourse as a unit
