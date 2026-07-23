@@ -52,7 +52,7 @@ MOVES = [
         "edit_rule": "Delete the evaluation and lead with the content. If the point matters, the sentence that states it must carry that weight itself.",
         "patterns": [
             r"\b(?:is|are|it'?s)\s+worth\s+(?:not|nam|mention|remember|repeat|paus|say|ask|emphasi|stress|dwell|sit)\w*",
-            r"\bworth\s+(?:noting|naming|sitting\s+with|dwelling\s+on|unpacking|calling\s+out|pausing\s+on)\b",
+            r"\bworth\s+(?:noting|naming|policing|watching|sitting\s+with|dwelling\s+on|unpacking|calling\s+out|pausing\s+on)\b",
             r"\bthe\s+part\s+worth\b",
             r"\b(?:here'?s|here\s+is)\s+(?:the\s+thing|the\s+part|why|what|where|how)\b",
             r"\bthe\s+(?:part|piece|thing|bit)\s+(?:that\s+matters|that\s+counts|worth|to\s+sit\s+with)\b",

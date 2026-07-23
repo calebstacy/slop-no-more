@@ -102,6 +102,13 @@ def test_ignore_token_skips_line():
     assert not moves_found("Most teams love this pattern. slop-ignore")
 
 
+def test_launch_post_catch_2026_07_23():
+    # the scanner passed this line in the project's own launch-post draft;
+    # a human ear caught it; the costume joined the cataphoric family
+    assert "cataphoric-evaluation" in moves_found(
+        "Moves are the layer worth policing, because moves generate claims.")
+
+
 def test_wild_catch_costumes_2026_07_23():
     # first wild specimen (a LinkedIn collaborative article) taught these
     assert "transition-turnstile" in moves_found(

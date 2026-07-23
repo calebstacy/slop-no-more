@@ -80,7 +80,9 @@ catches, 2026-07-02, essay review: the "deserves" family and the fake-reveal
 "here is the X you actually" join the patterns) · "That last part matters" /
 "The last part matters" · "The clearest one is" · "That is why I like the word
 move" (human catches, 2026-07-02, self-audit of an essay about this very
-catalog: old move, new costumes)
+catalog: old move, new costumes) · "the layer worth policing" (human catch,
+2026-07-23, in this project's own launch-post draft: the scanner passed it,
+the author's ear did not, and the costume joined the family the same hour)
 
 **Why it damages the argument.** It substitutes an appraisal for the evidence
 that would earn the appraisal, and it commits the piece to a significance the
