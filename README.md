@@ -1,13 +1,17 @@
 # slop-no-more
 
-Deterministic, explainable, zero-model prose linting with CI exit codes.
+A writing gate that catches the patterns making text sound like AI, the way
+a spell-checker catches typos: the same rules every time, a fix attached to
+every catch.
 
-Don't ask a model to catch what a regex can catch.
+Stop asking AI to do the parts that don't require intelligence.
 
 ## What it is
 
 A scanner that reads prose and flags the patterns that make text read as
 AI-written: the giveaway words, and underneath them the rhetorical moves.
+It is built for the people who own the words: content designers, UX
+writers, editors and anyone shipping prose an AI helped draft.
 "Here's why this matters" and "the part worth sitting
 with" share no vocabulary and are the same move, an evaluation of a point
 the text hasn't made yet. Strings are unbounded; moves are few. AI slop is
@@ -106,6 +110,9 @@ rule attached to each finding, regenerates what was load-bearing, then
 rescans.
 
 ### On the command line, and in CI
+
+For the engineers: deterministic, explainable, zero-model, and the exit
+code is the gate. Don't ask a model to catch what a regex can catch.
 
 ```bash
 pip install git+https://github.com/calebstacy/slop-no-more

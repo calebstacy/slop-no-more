@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "slop-no-more"
 version = "0.1.0"
-description = "Deterministic, explainable, zero-model prose linting for the AI era. Rhetorical-move detection with repair rules and CI exit codes."
+description = "Catches the patterns that make writing sound like AI, with a fix attached to every catch. Same rules every time, no AI judge. Skill for AI assistants plus a CLI gate for CI."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
