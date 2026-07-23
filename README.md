@@ -18,6 +18,15 @@ the text hasn't made yet. Strings are unbounded; moves are few. AI slop is
 roughly a dozen moves wearing ten thousand costumes, so this tool detects
 at the move level, where paraphrase can't escape.
 
+The move concept is borrowed, with credit, from applied linguistics. John
+Swales' move analysis (1990) treats a stretch of discourse as a unit
+defined by the job it does. Ken Hyland's metadiscourse research (2005)
+maps the language a text spends on itself, the signposting and stance
+work that surrounds the content. That is the lens this scanner operates:
+slop is largely metadiscourse doing content's job. The full research
+anchors, including 2025 corpus studies of how LLM prose actually behaves,
+live in [references/moves.md](references/moves.md).
+
 Three layers run on every scan:
 
 | Layer | What it catches | Examples |

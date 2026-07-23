@@ -21,8 +21,14 @@ happened gets asserted. Removing the move after the fact leaves a hole where
 evidence should be, which is why the gate rejects and regenerates rather than
 patching.
 
-Lineage: this is metadiscourse and move analysis (Hyland 2005; Swales 1990)
-turned into lint.
+Lineage: this is metadiscourse and move analysis turned into lint. John
+Swales' move analysis (Genre Analysis, 1990) defines a move as a stretch of
+discourse doing a particular communicative job, the unit his CARS model
+applies to research introductions. Ken Hyland's metadiscourse framework
+(Metadiscourse: Exploring Interaction in Writing, 2005) catalogs the
+language a text spends on itself: frame markers, engagement markers, boosters,
+hedges. This catalog applies both lenses to machine prose, where the
+metadiscourse arrives at machine frequency.
 
 Research anchors:
 
