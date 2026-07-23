@@ -9,7 +9,7 @@ description = "Deterministic, explainable, zero-model prose linting for the AI e
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "Caleb Stacy" }]
+authors = [{ name = "calebstacy" }]
 keywords = ["ai-slop", "prose-lint", "writing", "style", "rhetoric", "ci", "deterministic"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -24,8 +24,8 @@ classifiers = [
 slop = "slop_no_more.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/REPLACE-OWNER/slop-no-more"
-Issues = "https://github.com/REPLACE-OWNER/slop-no-more/issues"
+Homepage = "https://github.com/calebstacy/slop-no-more"
+Issues = "https://github.com/calebstacy/slop-no-more/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

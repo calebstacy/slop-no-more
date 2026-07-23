@@ -16,6 +16,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install git+https://github.com/REPLACE-OWNER/slop-no-more
+      - run: pip install git+https://github.com/calebstacy/slop-no-more
       # Exit code = number of high-severity findings, so this step IS the gate.
       - run: slop scan docs/ README.md

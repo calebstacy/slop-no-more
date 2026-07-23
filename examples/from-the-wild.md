@@ -1,6 +1,6 @@
 # From the wild: a real AI-written page, repaired
 
-The side-by-side demo runs on a prompt I control. This one doesn't. The
+The side-by-side demo runs on a controlled prompt. This one doesn't. The
 specimen below is published AI-written text from the live web, scanned as
 found and then repaired through the gate.
 
