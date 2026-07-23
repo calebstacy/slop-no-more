@@ -8,33 +8,29 @@ Stop asking AI to do the parts that don't require intelligence.
 
 AI drafts a large share of the text people publish now, and the fastest
 checks still get skipped because they feel like they need another AI.
-They don't. The failure patterns are finite and matchable, and a
-deterministic check beats a probabilistic promise every time it runs.
+They don't.
 
 ## What it is
 
-A scanner that reads prose and flags the patterns that make text read as
-AI-written: the giveaway words, and underneath them the rhetorical moves.
-It is built for the people who own the words: content designers, UX
+A gate built for the people who own the words: content designers, UX
 writers, editors and anyone shipping prose an AI helped draft.
 
-The word-level tells are the easy part, and plenty of tools catch them.
-The moves are the deeper layer: what a sentence is doing, regardless of
-how it is phrased. Take "here's why this matters" and "the part worth
-sitting with." They share no vocabulary, and they are the same move,
-praising a point the text has not made yet. A banned-word list can't see
-that; a move pattern can. AI slop is roughly a dozen moves wearing ten
-thousand costumes, so this tool detects at the move level, where
-paraphrase can't escape.
+The giveaway words are the easy part, and plenty of tools catch them.
+This scanner also reads the layer underneath: the rhetorical moves, what
+a sentence is doing regardless of how it is phrased. Take "here's why
+this matters" and "the part worth sitting with." They share no
+vocabulary, and they are the same move, praising a point the text has not
+made yet. Paraphrase escapes a banned-word list; it does not escape a
+move pattern. AI slop is roughly a dozen moves wearing ten thousand
+costumes.
 
-The move concept is borrowed, with credit, from applied linguistics. John
-Swales' move analysis (1990) treats a stretch of discourse as a unit
-defined by the job it does. Ken Hyland's metadiscourse research (2005)
-maps the language a text spends on itself, the signposting and stance
-work that surrounds the content. That is the lens this scanner operates:
-slop is largely metadiscourse doing content's job. The full research
-anchors, including 2025 corpus studies of how LLM prose actually behaves,
-live in [references/moves.md](references/moves.md).
+The move concept comes from applied linguistics: John Swales' move
+analysis (1990) treats a stretch of discourse as a unit defined by the
+job it does, and Ken Hyland's metadiscourse research (2005) maps the
+language a text spends on itself. Slop, in that vocabulary, is
+metadiscourse doing content's job, at machine frequency. The full
+research anchors, including 2025 corpus studies of LLM prose, live in
+[references/moves.md](references/moves.md).
 
 Three layers run on every scan:
 
@@ -44,14 +40,12 @@ Three layers run on every scan:
 | 2. Moves | Rhetorical patterns | manufactured antithesis, phantom populations, cataphoric evaluation, invented adversaries, hedge clouds, 23 families total |
 | 3. Distribution | Document statistics | sentence-cadence uniformity, em-dash density, triad density, metadiscourse ratio, style-marker density |
 
-Every finding names the pattern that fired and carries a repair rule that
-says what the sentence should become. The exit code equals the number of
-high-severity findings, so the scanner works as a build gate. And every
-scan emits a fingerprint, per-move rates per 1,000 words, so a corpus can
-be profiled and drift can be watched over time.
-
-It runs on nothing but Python's standard library. No model, no API key, no
-network, no pip dependencies. Cloning the repo is the entire installation.
+The exit code equals the number of high-severity findings, so a scan can
+gate a build. Each scan also emits a fingerprint, per-move rates per
+1,000 words, for profiling a corpus or watching drift over time. And it
+all runs on Python's standard library alone: no model, no API key, no
+network, no pip dependencies. Cloning the repo is the entire
+installation.
 
 ## Why it matters
 
@@ -62,20 +56,19 @@ line of regex caught ten of ten, in microseconds, for free, and it will
 catch the next ten thousand at the same rate. Rules that live in prompts
 leak; rules that live in code hold. ([Run it yourself.](examples/prompt_vs_regex.py))
 
-The same holds at full scale, on the models people actually use. The
-[side-by-side demo](examples/side-by-side.md) sent one prompt through
-three pipelines on `gpt-5.5` and `claude-sonnet-5`: the bare model, the
-model with strict writing instructions, and this tool's draft-scan-repair
-loop. Bare drafts scored 38.83 and 49.18 weighted density, both HEAVY
-SLOP. Instructions alone transformed the substance and barely moved the
-number (36.21 and 42.86): both models broke rules they had just been
-handed, inside the same response. The loop finished both at 0.00, CLEAN.
+The [side-by-side demo](examples/side-by-side.md) shows the same thing at
+full scale: one prompt through three pipelines on `gpt-5.5` and
+`claude-sonnet-5`. Bare drafts scored 38.83 and 49.18 weighted density,
+both HEAVY SLOP. Strict writing instructions transformed the substance
+and barely moved the number (36.21 and 42.86): both models broke rules
+they had just been handed, inside the same response. This tool's
+draft-scan-repair loop finished both at 0.00, CLEAN.
 
 And [one specimen nobody prompted](examples/from-the-wild.md): a page of
 AI-written text from the live web, machine-authored by the publishing
 platform's own disclosure, scanned as found at HEAVY SLOP and repaired to
-CLEAN at 72 percent shorter with every fact intact. The vanished words
-were carrying rhythm, and the facts all survived.
+CLEAN, 72 percent shorter, every fact intact. The vanished words were
+carrying rhythm.
 
 A survey of the field for this project (July 2026) found four tool
 families: instruction packs, which put rules in a prompt and cannot
