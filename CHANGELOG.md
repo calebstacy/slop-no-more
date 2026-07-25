@@ -10,6 +10,16 @@
   a shape legitimate headings also wear: a second beat carrying a real fact,
   three-beat lists, counted appositions, and body sentences all stay quiet.
 - `examples/from-the-wild.md` retitled — the new move caught the repo's own doc.
+- New move: `anaphoric-evaluation` (high) — the mirror of `cataphoric-evaluation`.
+  A clause hung off the end of a sentence that rates the content it trails
+  instead of adding to it ("which is the only test that counted", "and that's
+  the point"). Human catch, 2026-07-25.
+- New move: `unanchored-quantifier` (medium) — consecutive sentences opened by a
+  bare Both/Neither/Either/None standing in for a noun the prose never states
+  ("Both taught the same skill. Both were legible. Neither survived…"). Same
+  specimen, same catch. Brings the catalog to 26 families.
+- Both are calibrated against the specimen's hand repair: the sentence its
+  author rewrote by ear scans clean, and a test asserts it stays that way.
 
 ## 0.1.0 (2026-07-23)
 

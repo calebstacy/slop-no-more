@@ -73,6 +73,25 @@ MOVES = [
         ],
     },
     {
+        "name": "anaphoric-evaluation",
+        "definition": "The mirror of cataphoric-evaluation: a clause hung off the end of a sentence that rates the content it trails ('which is the only test that counted', 'and that is the point') rather than adding to it. The sentence finishes, then tells the reader the sentence mattered.",
+        "severity": "high",
+        "edit_rule": "Delete the trailing clause. If the fact it gestures at is real, state it: name the test, say who failed it, give the number. Significance is what the sentence demonstrates, not a rating appended to it.",
+        "patterns": [
+            # "…, which is the only test that counted." / "…, which was the real measure that mattered."
+            r",\s+which\s+(?:is|was)\s+(?:the\s+)?(?:only\s+|whole\s+|real\s+|actual\s+)?\w{3,14}\s+that\s+(?:count|matter)\w*",
+            # "…, which is the point." / "…, which was exactly the problem."
+            r",\s+which\s+(?:is|was)\s+(?:exactly\s+)?(?:the\s+)?(?:whole\s+)?(?:point|problem|issue|catch)\b",
+            # "…, which is what mattered."
+            r",\s+which\s+(?:is|was)\s+what\s+(?:count|matter)\w*",
+            # "…, and that's the point." / "— and that is what counted."
+            r"[,—–]\s+and\s+that(?:'s|’s|\s+is|\s+was)\s+(?:the\s+)?(?:whole\s+)?(?:point|thing|catch)\b",
+            r"[,—–]\s+and\s+that(?:'s|’s|\s+is|\s+was)\s+what\s+(?:count|matter)\w*",
+            # "…, which is the part that matters."
+            r",\s+which\s+(?:is|was)\s+the\s+(?:part|piece|bit)\s+that\s+(?:count|matter)\w*",
+        ],
+    },
+    {
         "name": "manufactured-antithesis",
         "definition": "A denial of a claim with no attributable claimant, staged so the correction can carry the assertion (not-X-but-Y and kin).",
         "severity": "high",
@@ -177,6 +196,18 @@ MOVES = [
         "edit_rule": "Name the actors: I decided, the model built, the team shipped. Keep 'we' only for a group the reader can identify.",
         "patterns": [
             r"\b[Ww]e\s+(?:built|wrote|made|designed|decided|created|shipped|defined)\b",
+        ],
+    },
+    {
+        "name": "unanchored-quantifier",
+        "definition": "Consecutive sentences opened by a bare quantifier (Both, Neither, Either, None) standing in for a noun the prose never states, chopping one claim into parallel fragments so the repetition can supply structure the sentence does not.",
+        "severity": "medium",
+        "edit_rule": "Name the antecedent once and join the fragments into the single sentence they already are: 'Both approaches taught the same skill and were legible, but neither survived contact with a first-time user.'",
+        "patterns": [
+            # the run is the detectable signal: a regex cannot see whether an antecedent exists,
+            # but two sentences in a row opening on the same bare quantifier is the cadence, and
+            # the repair (name the noun, join the clauses) fixes the missing referent too.
+            r"(?m)(?:^|[.!?]\s+)(?:Both|Neither|Either|None)\b[^.!?\n]{2,100}[.!?]\s+(?:Both|Neither|Either|None)\b",
         ],
     },
     {

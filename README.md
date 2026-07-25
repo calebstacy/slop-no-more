@@ -37,7 +37,7 @@ Three layers run on every scan:
 | Layer | What it catches | Examples |
 |---|---|---|
 | 1. Strings | Lexical tells | "delve", "In conclusion", "I hope this helps", stock idioms at machine frequency |
-| 2. Moves | Rhetorical patterns | manufactured antithesis, phantom populations, cataphoric evaluation, invented adversaries, hedge clouds, heading afterbeats, 24 families total |
+| 2. Moves | Rhetorical patterns | manufactured antithesis, phantom populations, cataphoric and anaphoric evaluation, invented adversaries, hedge clouds, heading afterbeats, 26 families total |
 | 3. Distribution | Document statistics | sentence-cadence uniformity, em-dash density, triad density, metadiscourse ratio, style-marker density |
 
 The exit code equals the number of high-severity findings, so a scan can

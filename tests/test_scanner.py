@@ -13,6 +13,8 @@ REPO = Path(__file__).resolve().parent.parent
 # move-name -> a sentence wearing a known costume  # slop-ignore
 POSITIVE = {
     "cataphoric-evaluation": "It is important to note that the cache is stale.",
+    "anaphoric-evaluation": "It failed with novices, which is the only test that counted.",
+    "unanchored-quantifier": "Both taught the same skill. Both were legible.",
     "manufactured-antithesis": "This is not about speed, it's about trust.",
     "phantom-population": "Most teams have a thin answer for this.",
     "invented-adversary": "Skeptics might argue that the data is cherry-picked.",
@@ -120,6 +122,56 @@ def test_afterbeat_fires(text):
 @pytest.mark.parametrize("text", AFTERBEAT_QUIET)
 def test_afterbeat_stays_quiet(text):
     assert "heading-afterbeat" not in moves_found(text), f"false positive: {text!r}"
+
+
+# The specimen that produced both moves, and the rewrite its author wrote by ear.
+# The instrument has to agree with the ear in both directions or it is not calibrated.
+SPECIMEN = (
+    "Both taught the same skill. Both were legible. Neither survived contact "
+    "with somebody who had never held a controller, which is the only test that counted."
+)
+SPECIMEN_REPAIRED = (
+    "Both approaches taught the same skill and were legible, but neither survived "
+    "contact with someone who was new to a VR controller."
+)
+
+
+def test_specimen_fires_both_moves():
+    found = moves_found(SPECIMEN)
+    assert "anaphoric-evaluation" in found
+    assert "unanchored-quantifier" in found
+
+
+def test_hand_repair_of_specimen_is_clean():
+    report = scan_text(SPECIMEN_REPAIRED)
+    layer12 = [f for f in report["findings"] if f["layer"] in (1, 2)]
+    assert not layer12, f"the hand repair should scan clean: {layer12}"
+
+
+ANAPHORIC_QUIET = [
+    # a relative clause that adds content is not an evaluation of the clause it trails
+    "It failed with novices, which is documented in the appendix.",
+    "The gate held, which is why we shipped on Tuesday.",
+    "I cut the clause, which the reviewer had flagged.",
+    # the same claim stated rather than appended
+    "The only test that counted was the one with novices.",
+]
+
+QUANTIFIER_QUIET = [
+    SPECIMEN_REPAIRED,
+    "Both prototypes shipped in March.",
+    "Neither of the two builds passed. The third did.",
+]
+
+
+@pytest.mark.parametrize("text", ANAPHORIC_QUIET)
+def test_anaphoric_stays_quiet(text):
+    assert "anaphoric-evaluation" not in moves_found(text), f"false positive: {text!r}"
+
+
+@pytest.mark.parametrize("text", QUANTIFIER_QUIET)
+def test_quantifier_stays_quiet(text):
+    assert "unanchored-quantifier" not in moves_found(text), f"false positive: {text!r}"
 
 
 def test_quoted_specimens_are_masked():

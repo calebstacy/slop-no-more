@@ -94,7 +94,37 @@ content; if it matters, the sentence stating it must carry the weight itself.
 **Edit rule.** Delete the evaluation, promote the content to the head of the
 sentence.
 
-## 2. manufactured-antithesis (high)
+## 2. anaphoric-evaluation (high)
+
+**Definition.** The mirror of cataphoric-evaluation: a clause hung off the end
+of a sentence that rates the content it trails rather than adding to it. The
+sentence finishes, and then a tag tells the reader the sentence mattered.
+
+**Costumes observed.** "Neither survived contact with somebody who had never
+held a controller, which is the only test that counted." (portfolio VR case,
+human catch 2026-07-25) · "which is the point" · "which is what mattered" ·
+"and that's the point" · "which was exactly the problem" · "which is the part
+that matters"
+
+**Why it damages the argument.** Significance is a thing a sentence
+demonstrates, not a rating appended to it. The tag also tends to arrive exactly
+where the evidence is thinnest: "the only test that counted" names no test, no
+tester, and no result, so the clause asserts a standard the paragraph never
+stated and then declares the standard met. A reader who wanted the number gets
+an adjective about the number.
+
+**Legitimate neighbors, excluded by the definition.** A relative clause that
+adds content is not an evaluation of the clause it trails ("which is documented
+in the appendix"), and a causal one states a real relation ("which is why we
+shipped Tuesday"). The same claim stated rather than appended is fine, and is
+usually the repair: "The only test that counted was the one with novices."
+
+**Instruction.** Never append a rating to your own sentence.
+
+**Edit rule.** Delete the trailing clause. If the fact it gestures at is real,
+state it: name the test, say who failed it, give the number.
+
+## 3. manufactured-antithesis (high)
 
 **Definition.** A denial of a claim with no attributable claimant, staged so
 the correction can carry the assertion. Not-X-but-Y and all kin.
@@ -113,7 +143,7 @@ a source. If no one did, state Y as a plain positive claim.
 
 **Edit rule.** Attribute X or convert to the positive claim.
 
-## 3. phantom-population (high)
+## 4. phantom-population (high)
 
 **Definition.** A quantified claim over a population nobody measured, asserted
 because the rhetorical template requires a group that fails or agrees.
@@ -132,7 +162,7 @@ First-person scope is always available: "the teams I have seen."
 
 **Edit rule.** Cite it, scope it to first person, or delete it.
 
-## 4. invented-adversary (high)
+## 5. invented-adversary (high)
 
 **Definition.** A rebuttal of an accusation or belief no one voiced, conjured
 so the text can perform fairness, generosity, or correction.
@@ -149,7 +179,7 @@ that does not exist, displacing the real intellectual context.
 
 **Edit rule.** Quote the real holder of the position, or delete the rebuttal.
 
-## 5. endophoric-command (high)
+## 6. endophoric-command (high)
 
 **Definition.** An imperative ordering the reader to re-attend to the text
 itself, claiming a significance the prose has not earned.
@@ -162,7 +192,7 @@ deserves a second read, rewrite until one read lands it.
 
 **Edit rule.** Delete the command.
 
-## 6. false-collaboration (medium)
+## 7. false-collaboration (medium)
 
 **Definition.** First-person-plural stagecraft casting the reader as a
 participant in work the writer is doing alone.
@@ -174,7 +204,7 @@ talk about"
 
 **Edit rule.** State the finding; make the argument.
 
-## 7. gatekeeper-test (medium)
+## 8. gatekeeper-test (medium)
 
 **Definition.** Handing the reader a diagnostic question to ask some third
 party, casting writer and reader as joint evaluators of an absent population.
@@ -186,7 +216,7 @@ Usually imports a consulting register the piece never chose.
 
 **Edit rule.** Answer it or cut the frame.
 
-## 8. clean-dichotomy (medium)
+## 9. clean-dichotomy (medium)
 
 **Definition.** Asserting that a drawn distinction is sharp as if that were a
 fact about the world, when only the sentence is clean.
@@ -199,7 +229,7 @@ the edge cases or drop the cleanliness claim.
 
 **Edit rule.** Add the boundary cases or soften to what you can defend.
 
-## 9. counterfeit-idiom (high)
+## 10. counterfeit-idiom (high)
 
 **Definition.** A figurative or colloquial phrase that imitates spoken idiom
 but is not one anyone says: invented folksiness that signals "human voice"
@@ -229,7 +259,7 @@ idiom if one fits.
 remembers them. Every human catch gets added as a literal pattern so it can
 never ship twice.
 
-## 10. hollow-pivot (high)
+## 11. hollow-pivot (high)
 
 **Definition.** A clause styled as a decisive conclusion that only restates or
 negates the previous clause: pure rhythm posing as a decision. The sentence
@@ -248,7 +278,7 @@ didn't, it is not a punchline; it is padding.
 
 **Edit rule.** Replace with the actual decision, or delete.
 
-## 11. dramatized-frame (high)
+## 12. dramatized-frame (high)
 
 **Definition.** Verbs and time-scales punched up beyond the facts,
 falsifying the writer's actual relationship to the events.
@@ -269,7 +299,7 @@ did not supply is fiction.
 **Detection note.** Ear-first, like counterfeit-idiom: only the writer knows
 their own facts. Catches accumulate as literal patterns.
 
-## 12. unanchored-we (medium)
+## 13. unanchored-we (medium)
 
 **Definition.** A first-person-plural actor in single-author prose whose
 members are never named, blurring who actually did what.
@@ -287,7 +317,41 @@ for a group the reader can identify.
 **Edit rule.** Replace each "we" with the named actor who did that specific
 thing.
 
-## 13. borrowed-inference (high)
+## 14. unanchored-quantifier (medium)
+
+**Definition.** Consecutive sentences opened by a bare quantifier (Both,
+Neither, Either, None) standing in for a noun the prose never states, chopping
+one claim into parallel fragments so the repetition can supply structure the
+sentence does not.
+
+**Costumes observed.** "Both taught the same skill. Both were legible. Neither
+survived contact with somebody who had never held a controller." (portfolio VR
+case, human catch 2026-07-25 — the same sentence that produced
+anaphoric-evaluation)
+
+**Why it damages the argument.** Both *what*? The quantifier is a pronoun with
+no antecedent, so the reader carries the referent across three sentences
+unaided. The chopping is the second cost: three fragments in the same subject
+slot read as cadence rather than argument, and the connective that would state
+the actual relation between them — concession — is never written. The author's
+own repair supplies both: "Both approaches taught the same skill and were
+legible, but neither survived contact with someone who was new to a VR
+controller." One sentence, a named antecedent, and a "but" that says what the
+three fragments were only implying.
+
+**Legitimate neighbors, excluded by the definition.** A quantifier with its
+noun attached ("Both prototypes shipped in March") and a single such sentence
+in isolation are ordinary English. The pattern family keys on the run, because
+a regex cannot see whether an antecedent exists — but the repair for the run
+fixes the missing referent too.
+
+**Instruction.** Name the antecedent once, then join the fragments into the
+sentence they already are.
+
+**Edit rule.** Supply the noun and the connective: X and Y did A, but neither
+did B.
+
+## 15. borrowed-inference (high)
 
 **Definition.** An inferential connective (so, which means, if X then Y,
 therefore) asserting a logical relation the text never establishes. Logic's
@@ -313,7 +377,7 @@ reclassify the claim honestly.
 pseudo-syllogism ("if X can be Aed, it can be Bed"); most instances need a
 reader asking "does Y actually follow?"
 
-## 14. empty-emphasis (medium)
+## 16. empty-emphasis (medium)
 
 **Definition.** An intensity claim about the writer's own argument doing work
 that evidence should do.
@@ -326,7 +390,7 @@ is the threshold I care about" · "That is technical work"
 
 **Edit rule.** If no fact justifies it, the sentence goes.
 
-## 15. count-contrast-lockup (high)
+## 17. count-contrast-lockup (high)
 
 **Definition.** A verbless apposition of counted noun phrases, "N xs, one y,"
 or its inversion, deployed as a heading, kicker, or closer so the count
@@ -358,7 +422,7 @@ form one system, write the sentence that says how.
 or with the sentence stating the unifying mechanism. The unity claim moves
 into prose that can carry it, or it goes.
 
-## 16. heading-afterbeat (high)
+## 18. heading-afterbeat (high)
 
 **Definition.** A heading or kicker built as two beats hinged on a comma, where
 the beat after the comma comments on the first instead of adding information:
@@ -399,7 +463,7 @@ beat is load-bearing, it is a sentence, and it belongs in the body.
 **Edit rule.** Delete the beat after the comma. If deleting it loses a fact,
 move that fact into the first line of the section as prose.
 
-## 17. phantom-bargain (high)
+## 19. phantom-bargain (high)
 
 **Definition.** A mechanism recast as a deal, promise, or contract between
 the reader and an abstraction, so the argument can borrow the authority of an
@@ -432,7 +496,7 @@ survives only as a deal, it goes.
 
 ---
 
-## 18. anonymous-authority (high)
+## 20. anonymous-authority (high)
 
 **Definition.** A source-shaped claim that invokes research, evidence,
 experts, or consensus without naming the source. It borrows the look of
@@ -459,7 +523,7 @@ PMID, arXiv id, or nearby named source. The scanner suppresses this move when
 that evidence appears on the same line; a human reviewer still verifies the
 source actually says what the prose claims.
 
-## 19. hedge-cloud (medium)
+## 21. hedge-cloud (medium)
 
 **Definition.** A stack of modal and hedging terms that diffuses
 responsibility for a claim instead of calibrating uncertainty.
@@ -479,7 +543,7 @@ uncertainty. "Probably" without a why is padding.
 source: small sample, indirect evidence, early data, disputed mechanism, or
 first-person scope.
 
-## 20. transition-turnstile (medium)
+## 22. transition-turnstile (medium)
 
 **Definition.** A sentence or paragraph begins with a formal transition that
 supplies motion without a real relation between claims.
@@ -498,7 +562,7 @@ contrast, cause, exception, consequence, narrower case, wider case, or return.
 **Edit rule.** Delete the transition or replace it with the actual relation.
 If no relation exists, reorder or split the paragraph.
 
-## 21. template-roadmap (medium)
+## 23. template-roadmap (medium)
 
 **Definition.** The text announces the generic task it will perform instead of
 beginning the task with a substantive claim.
@@ -517,7 +581,7 @@ belongs to this specific piece.
 **Edit rule.** Cut the roadmap. Promote the first non-generic sentence, or
 write the claim the roadmap was avoiding.
 
-## 22. coverage-sweep (medium)
+## 24. coverage-sweep (medium)
 
 **Definition.** A breadth montage that gestures across a range instead of
 selecting the specific cases the argument needs.
@@ -535,7 +599,7 @@ claim and say why those cases matter.
 **Edit rule.** Replace the sweep with two or three named cases, plus the
 selection rule. If the exact cases do not matter, cut the sweep.
 
-## 23. sterile-balance (medium)
+## 25. sterile-balance (medium)
 
 **Definition.** A symmetrical concession frame that performs neutrality
 without adjudicating which side is true, stronger, or relevant.
@@ -555,7 +619,7 @@ the sides, and attach the judgment to evidence.
 because Z." If no weighting is available, write the narrower claim and drop
 the ceremonial caveat.
 
-## 24. benefit-cascade (medium)
+## 26. benefit-cascade (medium)
 
 **Definition.** A chain of generic uplift verbs that converts desired outcomes
 into evidence of mechanism.
