@@ -28,6 +28,7 @@ POSITIVE = {
     "empty-emphasis": "The real waste is the review time.",
     "phantom-bargain": "The model promises you a fluent draft.",
     "count-contrast-lockup": "Three jobs, one system.",
+    "heading-afterbeat": "Language systems, built on shipped product.",
     "anonymous-authority": "Research shows that readers skim.",
     "hedge-cloud": "It may possibly indicate a trend that could matter.",
     "transition-turnstile": "Moreover, the cache is stale.",
@@ -79,6 +80,46 @@ def test_plain_prose_is_quiet(text):
 
 def test_every_move_has_a_positive_fixture():
     assert set(POSITIVE) == {m["name"] for m in MOVES}
+
+
+# The afterbeat move keys on a shape that legitimate headings also wear, so its
+# boundary is pinned in both directions rather than left to the general fixtures.
+AFTERBEAT_FIRES = [
+    "Language, measured.",                                   # single participle tag
+    "The rail, redrawn.",                                    # irregular -wn participle
+    "A five-job content model, decided before there was an interface.",
+    "Teaching and poetry, then product design.",             # sequel tag
+    "Four things, and the last one is the point.",           # meta-claim tag
+    "Four rules, and the strings that came out of them.",    # counted heading + tag
+    "The practice, in order",                                # prepositional label tag
+]
+
+AFTERBEAT_QUIET = [
+    # -en is not a participle suffix: op|en, oft|en, ev|en, t|en
+    "Published research, open dependencies",
+    # body sentences run past heading length even when a participle follows the comma
+    "Hypotheses that survive contact with shipped behaviour, run with research and data partners.",
+    "Completion, return, and retention, measured against the curriculum it replaced.",
+    # a real restriction in the second beat is information, not cadence
+    "Social, but only in relation to VR",
+    # three beats is a list, not the two-beat lockup
+    "It shipped, it was tested, and it went onstage.",
+    "Standards, schemas, and checks.",
+    # owned by other moves; this one must not double-fire
+    "Considered, not shipped.",
+    "Four places, one through-line.",
+    "Meta, 2024",
+]
+
+
+@pytest.mark.parametrize("text", AFTERBEAT_FIRES)
+def test_afterbeat_fires(text):
+    assert "heading-afterbeat" in moves_found(text), f"missed: {text!r}"
+
+
+@pytest.mark.parametrize("text", AFTERBEAT_QUIET)
+def test_afterbeat_stays_quiet(text):
+    assert "heading-afterbeat" not in moves_found(text), f"false positive: {text!r}"
 
 
 def test_quoted_specimens_are_masked():

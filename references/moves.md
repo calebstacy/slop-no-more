@@ -358,7 +358,48 @@ form one system, write the sentence that says how.
 or with the sentence stating the unifying mechanism. The unity claim moves
 into prose that can carry it, or it goes.
 
-## 16. phantom-bargain (high)
+## 16. heading-afterbeat (high)
+
+**Definition.** A heading or kicker built as two beats hinged on a comma, where
+the beat after the comma comments on the first instead of adding information:
+a participle tag ("Language systems, built on shipped product"), a sequel tag
+("Teaching and poetry, then product design"), or a meta-claim about the list
+the heading introduces ("Four things, and the last one is the point").
+
+**Costumes observed.** "Four things, and the last one is the point." · "A
+five-job content model, decided before there was an interface." · "Language
+systems, built on shipped product." · "Teaching and poetry, then product
+design." · "The practice, in order" · "Four rules, and the strings that came
+out of them." (all portfolio section headings, human catch 2026-07-25) · "From
+the wild: a real AI-written page, repaired" (this repo's own example doc,
+caught by the move on the commit that added it)
+
+**Why it damages the argument.** A heading's job is to name what is under it,
+and the afterbeat spends the heading's only line on a comment about itself. The
+tag reliably asserts a relation the section has not yet earned — that the
+material resolves, that it arrives in sequence, that one of its parts outranks
+the others — so the reader is told the shape of a conclusion before seeing any
+of it, and the heading no longer says what the section contains. The cadence is
+also mechanical: two beats, comma, one beat. Once a document uses it twice it
+reads as a template, because it is one.
+
+**Legitimate neighbors, excluded by the definition.** A second beat that
+carries a fact the first does not is information, not cadence: "Social, but
+only in relation to VR" restricts a scope, and "Considered, not shipped"
+states an outcome (that one is scored by manufactured-antithesis, which owns
+attributed and unattributed negation). Three-beat lists are lists ("It shipped,
+it was tested, and it went onstage"). Counted appositions belong to
+count-contrast-lockup. Body sentences are out of scope entirely: the pattern
+family is bounded to heading length, so a participle following a comma
+mid-paragraph is left alone.
+
+**Instruction.** Let the heading name its own subject and stop. If the second
+beat is load-bearing, it is a sentence, and it belongs in the body.
+
+**Edit rule.** Delete the beat after the comma. If deleting it loses a fact,
+move that fact into the first line of the section as prose.
+
+## 17. phantom-bargain (high)
 
 **Definition.** A mechanism recast as a deal, promise, or contract between
 the reader and an abstraction, so the argument can borrow the authority of an
@@ -391,7 +432,7 @@ survives only as a deal, it goes.
 
 ---
 
-## 17. anonymous-authority (high)
+## 18. anonymous-authority (high)
 
 **Definition.** A source-shaped claim that invokes research, evidence,
 experts, or consensus without naming the source. It borrows the look of
@@ -418,7 +459,7 @@ PMID, arXiv id, or nearby named source. The scanner suppresses this move when
 that evidence appears on the same line; a human reviewer still verifies the
 source actually says what the prose claims.
 
-## 18. hedge-cloud (medium)
+## 19. hedge-cloud (medium)
 
 **Definition.** A stack of modal and hedging terms that diffuses
 responsibility for a claim instead of calibrating uncertainty.
@@ -438,7 +479,7 @@ uncertainty. "Probably" without a why is padding.
 source: small sample, indirect evidence, early data, disputed mechanism, or
 first-person scope.
 
-## 19. transition-turnstile (medium)
+## 20. transition-turnstile (medium)
 
 **Definition.** A sentence or paragraph begins with a formal transition that
 supplies motion without a real relation between claims.
@@ -457,7 +498,7 @@ contrast, cause, exception, consequence, narrower case, wider case, or return.
 **Edit rule.** Delete the transition or replace it with the actual relation.
 If no relation exists, reorder or split the paragraph.
 
-## 20. template-roadmap (medium)
+## 21. template-roadmap (medium)
 
 **Definition.** The text announces the generic task it will perform instead of
 beginning the task with a substantive claim.
@@ -476,7 +517,7 @@ belongs to this specific piece.
 **Edit rule.** Cut the roadmap. Promote the first non-generic sentence, or
 write the claim the roadmap was avoiding.
 
-## 21. coverage-sweep (medium)
+## 22. coverage-sweep (medium)
 
 **Definition.** A breadth montage that gestures across a range instead of
 selecting the specific cases the argument needs.
@@ -494,7 +535,7 @@ claim and say why those cases matter.
 **Edit rule.** Replace the sweep with two or three named cases, plus the
 selection rule. If the exact cases do not matter, cut the sweep.
 
-## 22. sterile-balance (medium)
+## 23. sterile-balance (medium)
 
 **Definition.** A symmetrical concession frame that performs neutrality
 without adjudicating which side is true, stronger, or relevant.
@@ -514,7 +555,7 @@ the sides, and attach the judgment to evidence.
 because Z." If no weighting is available, write the narrower claim and drop
 the ceremonial caveat.
 
-## 23. benefit-cascade (medium)
+## 24. benefit-cascade (medium)
 
 **Definition.** A chain of generic uplift verbs that converts desired outcomes
 into evidence of mechanism.

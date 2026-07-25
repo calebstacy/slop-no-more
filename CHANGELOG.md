@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- New move: `heading-afterbeat` (high) — the two-beat heading hinged on a comma
+  where the second beat comments on the first instead of adding information
+  ("Language systems, built on shipped product", "Four things, and the last one
+  is the point"). Human catch, 2026-07-25. Brings the catalog to 24 families.
+- The move's boundary is pinned by tests in both directions, because it keys on
+  a shape legitimate headings also wear: a second beat carrying a real fact,
+  three-beat lists, counted appositions, and body sentences all stay quiet.
+- `examples/from-the-wild.md` retitled — the new move caught the repo's own doc.
+
 ## 0.1.0 (2026-07-23)
 
 First public release.

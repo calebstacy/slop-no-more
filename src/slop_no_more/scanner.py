@@ -263,6 +263,36 @@ MOVES = [
         ],
     },
     {
+        "name": "heading-afterbeat",
+        "definition": "A heading or kicker built as two beats hinged on a comma, where the beat after the comma comments on the first instead of adding information: a participle tag ('Language, measured'), a sequel tag ('Teaching and poetry, then product design'), or a meta-claim about the list the heading introduces ('Four things, and the last one is the point'). The comma supplies cadence, and the cadence is mistaken for a point.",
+        "severity": "high",
+        "edit_rule": "Delete the beat after the comma and let the heading name its own subject. If the second beat carries a fact the first does not, it belongs in the body as a sentence, not hung off a heading as a tag.",
+        "patterns": [
+            # participle tag: "Language, measured." / "Language systems, built on shipped
+            # product." / "A five-job content model, decided before there was an interface."
+            # One comma only, and the whole line stays heading-length — the char bounds are the
+            # word-count guard, since a body sentence that happens to have a participle after a
+            # comma ("Hypotheses that survive contact with shipped behaviour, run with research
+            # and data partners.") runs past them and is left alone.
+            # 'not X' is left to manufactured-antithesis so the two moves do not both fire.
+            # NB: the regular-participle class is -ed/-ing/-wn with a 3+ char stem, never a bare
+            # -en: "op|en", "oft|en", "ev|en" and "t|en" are not participles, and -en cost a false
+            # fire on "Published research, open dependencies". Irregulars are listed explicitly.
+            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,48},\s+(?!not\b)(?:[a-z]{3,}(?:ed|ing|wn)|built|made|kept|shown|sent|met|gone|lost|done|taken|given|written|broken|chosen|driven|proven|known|held|left|told|found|brought|caught|taught|seen|spent|split|dealt)\b[^,\n]{0,34}\.?$",
+            # sequel tag: "Teaching and poetry, then product design."
+            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,48},\s+then\s+[^,\n]{2,44}\.?$",
+            # counted heading with an appended tag: "Four rules, and the strings that came out of
+            # them." / "Four things, and the last one is the point."
+            r"(?m)^#{0,6}\s*(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+)\s+[a-z]+,\s+and\s+the\s+[^,\n]{2,48}\.?$",
+            # meta-claim tag, anywhere: "…, and the last one is the point."
+            r",\s+and\s+the\s+(?:last|first|second|third|next|only|real|best|worst|hardest|simplest|biggest)\s+one\s+(?:is|was|matters|counts|wins|does|did)\b",
+            # bare ordinal meta-tag: "Four things, the last one matters."
+            r",\s+the\s+(?:last|first|next|only|hardest|biggest)\s+one\s+(?:is\s+the\s+\w+|matters|counts)\b",
+            # prepositional label tag: "The practice, in order" / "The before, on its own terms"
+            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,34},\s+(?:in|on|at|by|for|with|from|under|after|before|through)\s+[a-z][^,\n]{2,26}$",
+        ],
+    },
+    {
         "name": "anonymous-authority",
         "definition": "A source-shaped claim that invokes research, evidence, experts, or consensus without naming the source.",
         "severity": "high",

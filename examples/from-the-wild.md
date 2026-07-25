@@ -1,4 +1,4 @@
-# From the wild: a real AI-written page, repaired
+# From the wild: repairing a real AI-written page
 
 The side-by-side demo runs on a controlled prompt. This one doesn't. The
 specimen below is published AI-written text from the live web, scanned as
