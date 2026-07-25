@@ -207,7 +207,13 @@ MOVES = [
             # the run is the detectable signal: a regex cannot see whether an antecedent exists,
             # but two sentences in a row opening on the same bare quantifier is the cadence, and
             # the repair (name the noun, join the clauses) fixes the missing referent too.
-            r"(?m)(?:^|[.!?]\s+)(?:Both|Neither|Either|None)\b[^.!?\n]{2,100}[.!?]\s+(?:Both|Neither|Either|None)\b",
+            # "Bare" is the whole move: a quantifier followed straight by a determiner or
+            # possessive has its noun attached and is ordinary English — "Neither the naive
+            # prompt nor the published guide is a straw man. Both are close to…" is not this
+            # move, and cost a false fire before the lookahead was added.
+            r"(?m)(?:^|[.!?]\s+)(?:Both|Neither|Either|None)\s+(?!the\b|a\b|an\b|of\b|my\b|our\b|your\b|his\b|her\b|their\b|its\b|this\b|that\b|these\b|those\b)"
+            r"[^.!?\n]{2,100}[.!?]\s+(?:Both|Neither|Either|None)\s+"
+            r"(?!the\b|a\b|an\b|of\b|my\b|our\b|your\b|his\b|her\b|their\b|its\b|this\b|that\b|these\b|those\b)",
         ],
     },
     {

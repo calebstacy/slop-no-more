@@ -161,6 +161,10 @@ QUANTIFIER_QUIET = [
     SPECIMEN_REPAIRED,
     "Both prototypes shipped in March.",
     "Neither of the two builds passed. The third did.",
+    # the quantifier carries its own noun, so nothing is unanchored
+    "Neither the naive prompt nor the published guide is a straw man here. "
+    "Both are close to what a team would actually ship.",
+    "Both of the runs finished. Both of them agreed.",
 ]
 
 

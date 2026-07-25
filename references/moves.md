@@ -340,8 +340,12 @@ controller." One sentence, a named antecedent, and a "but" that says what the
 three fragments were only implying.
 
 **Legitimate neighbors, excluded by the definition.** A quantifier with its
-noun attached ("Both prototypes shipped in March") and a single such sentence
-in isolation are ordinary English. The pattern family keys on the run, because
+noun attached is ordinary English, whether the noun follows directly ("Both
+prototypes shipped in March") or is carried by a correlative ("Neither the
+naive prompt nor the published guide is a straw man here. Both are close to
+what a team would ship") — that second case cost a false fire before the
+pattern learned to require a bare quantifier. A single such sentence in
+isolation is fine too. The pattern family keys on the run, because
 a regex cannot see whether an antecedent exists — but the repair for the run
 fixes the missing referent too.
 
