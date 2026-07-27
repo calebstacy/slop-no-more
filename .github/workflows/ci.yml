@@ -4,18 +4,42 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test-and-dogfood:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.12"]
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.12", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e . pytest
-      - run: pytest -q
-      # The gate gates itself: exit code = high-severity findings in our own docs.
-      - run: slop scan README.md SKILL.md examples/side-by-side.md
+      - run: python -m pip install -e . pytest
+      - run: python -m pytest -q
+      # Dogfood the public policy at the default high-severity threshold.
+      - run: >-
+          slop scan
+          README.md
+          SKILL.md
+          references/moves.md
+          examples/side-by-side.md
+          examples/from-the-wild.md
+          --fail-on high
+
+  wheel-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python -m pip install --force-reinstall dist/*.whl
+      - run: slop --version

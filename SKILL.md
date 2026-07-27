@@ -1,117 +1,154 @@
 ---
 name: slop-no-more
 description: >-
-  Detects and repairs rhetorical moves that make prose read as AI-written and
-  quietly mutate the argument: cataphoric evaluation ("here's why it matters"),
-  manufactured antithesis ("not X, but Y"), phantom populations ("most teams"),
-  invented adversaries, endophoric commands ("read that again"), anonymous
-  authority, hedge clouds, rigid transitions, roadmap openings, coverage sweeps,
-  sterile balance, benefit cascades and kin. Three layers: lexical strings,
-  functional moves and document statistics (cadence variance, em-dash density,
-  AI style-marker density, metadiscourse ratio). Ships a deterministic scanner
-  (scripts/slop_scan.py) whose findings carry edit rules and a fingerprint
-  vector. Use when writing, drafting, editing, reviewing or auditing prose for
-  a reader, especially when the user says something sounds like AI, reads as
-  slop, needs de-slopping or should sound like a specific human.
+  Runs deterministic checks for configured English-language prose patterns and
+  routes each match to an inspectable editorial repair. Use when drafting,
+  editing or reviewing prose against an adopted style policy, especially when
+  someone asks to de-slop a draft or remove familiar model-associated patterns.
+  The scanner reports observable evidence; it does not identify authorship,
+  measure writing quality or understand rhetorical function.
 ---
 
 # slop-no-more
 
-The unit of enforcement here is the **move**. A move is what a clause is
-doing ("an evaluative clause whose referent is upcoming content"), and the
-full catalog with definitions, edit rules and lineage lives in
-[references/moves.md](references/moves.md). Read it before your first edit;
-it is the ground truth this file only summarizes.
+This skill turns an editorial policy into repeatable checks. The scanner owns
+the observable question: *did a configured pattern occur?* A reviewer owns the
+judgment: *is that occurrence a problem here, and what should replace it?*
 
-Two facts drive the whole design:
+The catalog groups known surface forms under editorial concerns called
+**moves**. The functional definitions in
+[references/moves.md](references/moves.md) explain those concerns. Read them as
+review rubrics, not as capabilities the regex possesses. A match is not proof
+that the sentence performs the named function.
 
-1. **Moves generate claims.** A denial template invents a claimant; a "most
-   teams" template invents a survey. Slop at this layer changes what the piece
-   asserts. So the gate rejects and regenerates instead of patching wording.
-2. **Instructions alone do not hold.** A generator can hold a rule in full
-   attention and violate it in the same paragraph (this was demonstrated live,
-   repeatedly, during this skill's design). Instructions raise the pass rate;
-   only the test enforces. Never report prose as clean because you tried to
-   write it clean; report it clean because the scanner said so.
+Three commitments govern the workflow:
 
-## Mode 1: Build (upstream)
+1. **Every claim goes to the strongest check it can honestly support.** A
+   literal character, phrase or syntactic signature goes to code. Meaning,
+   intent and tradeoffs stay with a reviewer.
+2. **Some patterns can introduce unsupported premises.** An unattributed
+   denial can imply a claimant; an unmeasured population phrase can imply data.
+   Inspect the evidence before repeating or repairing the claim.
+3. **A prompt is not a test.** Instructions can shape a draft. Only the
+   post-draft scan establishes whether the configured observable checks passed.
+   The scan does not itself enforce a repair; CI can reject the text, or an
+   editor can change it.
 
-Most slop is a specification problem: an unspecified prompt gets the median of
-the training data, and the median is a persuasion artifact, an authoritative
-diagnostician addressing an imagined audience, building to a quotable line.
-Before drafting anything for a reader, pin:
+## Mode 1: Build
 
-- **Genre stance: thinking or persuading?** Default for essays is *thinking*:
-  a person turning an idea over, uncertainty held openly, attention distributed
-  unevenly. The model's default is persuading; left unpinned, it will recast
-  the idea as a pitch and invent the audience to pitch to.
-- **A speaker and an addressee.** One real person with a stake, writing at a
-  specific someone. Never "teams," never a market.
-- **The claim**, in one sentence, with its certainty level. If a claim ledger
-  exists for the piece, every assertion traces to it; the ledger's confidence
-  level caps the prose's confidence level.
-- **Raw material first.** When the piece is in a specific person's voice, build
-  quote-first from their recorded words. Human-sounding text is not achieved by
-  subtraction from machine prose; it is achieved by starting from human
-  material. The machine assembles; it does not author.
-- **The move instructions** from the catalog, one line each, e.g. "never
-  evaluate a point you have not yet made," "every antithesis names its
-  claimant," "no quantifier over an unmeasured population."
+Before drafting reader-facing prose, pin the inputs the writer or model would
+otherwise have to invent:
 
-## Mode 2: Gate (downstream)
+- **Genre and job.** Name what the piece has to do for this reader.
+- **Speaker and addressee.** Use the real relationship, not a generic market.
+- **Claims and confidence.** Record the approved claims and the limits that cap
+  their certainty.
+- **Source material.** Start from approved facts, quotations and product
+  details. A style constraint cannot supply missing evidence.
+- **Applicable policy.** Select the rules that belong to this genre. Disable a
+  rule deliberately when its surface form is legitimate here; do not ask the
+  model to evade the scanner after the fact.
 
-For any draft, yours or existing prose brought in for audit:
+The catalog's instructions can be included in a drafting prompt. They may
+improve compliance, but the output still has to be scanned independently.
+
+## Mode 2: Review
+
+Run the finished draft:
 
 ```bash
-python3 scripts/slop_scan.py <path>                 # report + verdict + fingerprint
-python3 scripts/slop_scan.py <path> --severity high # strongest signals only
-python3 scripts/slop_scan.py <path> --json          # machine-readable; exit code = high count
-python3 scripts/slop_scan.py <path> --fingerprint   # the vector only
+python3 scripts/slop_scan.py <path>
+python3 scripts/slop_scan.py <path> --severity high
+python3 scripts/slop_scan.py <path> --fail-on medium
+python3 scripts/slop_scan.py <path> --disable manufactured-antithesis
+python3 scripts/slop_scan.py <path> --json
+python3 scripts/slop_scan.py <path> --fingerprint --fail-on never
 ```
 
-(With the package installed, `slop scan <path>` is the same tool.)
+With the package installed, `slop scan <path>` runs the same scanner.
+Directory scans discover and accept only `.md`, `.markdown` and `.txt`. Extract
+the prose from HTML, MDX or RST first; passing those formats returns input error
+`3`. One scan accepts at most 1,000 files, 1 MiB per file and 20 MiB total
+input; exceeding a limit is also input error `3`.
+Directory discovery skips file symlinks; pass an intended file explicitly.
 
-Then:
+The gate contract is explicit:
 
-1. **Apply the edit rule attached to each finding.** A synonym swap is never
-   the repair. The rules say what the sentence becomes: attribute the
-   antithesis or convert it to a positive
-   claim; replace the phantom population with a source or first-person scope;
-   delete the cataphoric evaluation and lead with the content.
-2. **Regenerate the affected passage** when a high-severity move is
-   load-bearing (the paragraph's evidence *was* the move). Patching around a
-   removed move leaves a hole where an argument should be.
-3. **Rescan.** The gate is passed when the scanner passes.
-4. **Novel costumes.** The scanner catches known disguises of each move. When
-   prose feels off but scans clean, read it against the functional definitions
-   in the catalog; anything you find gets added to the pattern family, so the
-   deterministic layer grows.
+- `--fail-on high` is the default.
+- `--fail-on medium` fails on high or medium findings.
+- `--fail-on never` reports without gating.
+- `--severity high|medium|low` filters displayed findings only.
+- `--disable RULE` is repeatable and removes that rule from the effective
+  policy. The report fingerprints the disabled rules.
+- `--json` and `--fingerprint` change output shape, not gate behavior.
+- exit `0` means pass, `1` means configured findings failed the gate, `2`
+  means invalid usage and `3` means an input error.
 
-Findings inside quotes, backticks and blockquotes are skipped: quoting a
-move to discuss it is not performing it. A line containing `slop-ignore` is
-skipped; use it for deliberate choices so the gate stays trustworthy.
+Then review each finding:
 
-## The over-correction trap
+1. **Read the matched words in context.** Decide whether the configured
+   concern applies. A surface signature can be a false positive.
+2. **Use the attached repair as a route, not an automatic rewrite.** Attribute
+   a denied claim, narrow an unsupported population, replace framing with the
+   content or document a deliberate exception.
+3. **Protect the substance.** The scanner does not compare meanings or verify
+   facts. Check every edited claim against the source material.
+4. **Rescan the edited passage.** Report the gate result and any remaining
+   findings. Do not call the writing good, human or true because a scan passed.
+5. **Record recurring boundary failures.** A new signature or exemption needs
+   a positive specimen, a legitimate neighbor and regression tests before it
+   becomes policy.
 
-The mirror-image register (staccato fragments, forced lowercase, manufactured
-casualness, fake typos) is its own tell, clocked just as fast. Evenness is
-the tell whichever length it settles on: all-short sentences are as mechanical
-as all-medium ones. The fix for a flagged move is the plain sentence a person
-would write, never a costume of not-AI.
+## Masking and deliberate exceptions
+
+The scanner excludes:
+
+- compatible fenced code blocks whose closer uses the opener's marker and at
+  least its delimiter length;
+- lines whose content begins with `>`;
+- complete same-line inline-code spans with matching backtick delimiters;
+- complete paired straight or curly double-quoted spans; and
+- complete paired straight or curly single-quoted spans, with apostrophes
+  inside words kept as prose.
+
+Unclosed quote marks are ordinary prose. A line containing `slop-ignore` is
+skipped. Prefer `--disable RULE` when the exception applies to a whole genre or
+repository; use `slop-ignore` only for a deliberate local choice. Every
+operative inline ignore is reported by source line and matched token in human
+output, report JSON and fingerprint JSON.
+
+Complete quoted spans mask everything inside them, including contractions.
+Apostrophes in unquoted prose remain lintable and do not open a quote. Anchored
+rules use logical Markdown and paragraph boundaries; physically soft-wrapping a
+paragraph does not create a new start for those checks.
 
 ## The fingerprint
 
-Every scan emits per-move rates per 1,000 words plus the distribution metrics
-(cadence variance, em-dash density, triad density, metadiscourse ratio). Run
-it over a corpus and you have a move fingerprint: a profile of how a writer,
-a team, or a model actually behaves at the move level, and a baseline to
-catch drift against. It pairs well with voice-fingerprinting tools, and the
-division of labor is clean: a voice fingerprint tells you whether text sounds
-like you; slop-no-more tells you whether it reads machine-made.
+Each scan emits counts and rates, the scanner version, a fingerprint schema
+version, a deterministic ruleset identifier and the effective disabled-rule
+list. Compare fingerprints only when scanner version, schema, ruleset,
+configuration and genre are compatible.
+
+The fingerprint can show that configured pattern rates changed. It does not
+identify a writer, measure voice, explain the cause of drift or establish that
+one text is better. Density bands are occurrence summaries. In short copy, read
+the findings themselves; per-1,000-word rates amplify single occurrences.
+If structural Markdown remains after masking but no prose words do, density and
+per-move rates are `n/a` in text output and `null` in JSON. Structural findings
+still affect the verdict and gate.
 
 ## Reporting
 
-Lead with the verdict and the single highest-impact repair. Then findings by
-severity with line numbers and their edit rules. Close with the fingerprint
-line. A clean scan means the known layers are clean; say exactly that. The
-final read against the catalog definitions is still a human's call.
+Start with the configured gate result. Follow it with the most consequential
+matched evidence and its repair. Include:
+
+- `PASS` or `FAIL` and the `--fail-on` threshold;
+- findings by severity with line numbers and matched text;
+- any disabled rules or ignored lines;
+- the scanner version, fingerprint schema and ruleset identifier when comparing
+  runs; and
+- a plain limitation: a pass means the selected observable checks passed.
+
+Never convert the result into an authorship verdict, quality score or claim
+that the revision preserved every fact. Those questions require different
+evidence.

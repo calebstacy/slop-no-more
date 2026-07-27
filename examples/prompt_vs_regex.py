@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""The experiment behind this repo, runnable yourself.
+"""A reproducible boundary between instruction and verification.
 
-Rule: "don't use em dashes."
+Rule under review: do not use an em dash.
 
-Side A gives the rule to a language model as a system instruction and counts
-how many of its outputs comply. Side B applies one regex. Side A costs money,
-takes seconds per call, and leaks. Side B is free, instant, and total.
+This script does not call a model or claim a model pass rate. Give it a JSON
+file containing recorded model outputs to measure one run:
 
-The model side is pluggable so this file has zero dependencies: fill in
-ask_model() with any provider call (or paste outputs by hand into OUTPUTS).
-The regex side runs as-is.
+    python examples/prompt_vs_regex.py outputs.json
+
+Without that file, it reports that the prompt side was not measured and runs
+ten declared unit fixtures for the regex. Passing fixtures show that the
+observable check behaves as specified. They do not show that the check
+understands prose, improves writing or enforces its own repair.
 """
 
+import argparse
+import json
 import re
+from pathlib import Path
 
-RULE_AS_PROMPT = "Please never use em dashes in your output."
-RULE_AS_REGEX = re.compile("—")
+
+RULE_AS_PROMPT = "Do not use em dashes in your output."
+RULE_AS_REGEX = re.compile("\N{EM DASH}")
 
 PROMPTS = [
     "Write a two-sentence welcome email for a budgeting app.",
@@ -25,40 +31,71 @@ PROMPTS = [
     "Write a product blurb for noise-canceling headphones.",
     "Summarize the plot of Moby-Dick in three sentences.",
     "Write an error message for a failed file upload.",
-    "Draft a tweet announcing a bakery's new location.",
+    "Draft a post announcing a bakery's new location.",
     "Explain compound interest in two sentences.",
     "Write a calendar invite description for a design review.",
 ]
 
+# Each tuple is (text, should_match). These test the declared character rule,
+# including neighboring punctuation the rule must not confuse with an em dash.
+REGEX_FIXTURES = [
+    ("Alpha—beta", True),
+    ("An em dash — with spaces", True),
+    ("Two—em—dashes", True),
+    ("—leading", True),
+    ("trailing—", True),
+    ("Alpha-beta", False),
+    ("Alpha – beta", False),
+    ("Alpha -- beta", False),
+    ("No dash here.", False),
+    ("The code point is U+2014.", False),
+]
 
-def ask_model(system, prompt):
-    """Plug in your provider here and return the model's text.
 
-    Example (Anthropic):
-        client.messages.create(model=..., system=system,
-                               messages=[{"role": "user", "content": prompt}])
-    """
-    raise NotImplementedError("wire up a provider, or fill OUTPUTS below")
+def load_outputs(path):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, list) or not all(isinstance(item, str) for item in data):
+        raise ValueError("outputs JSON must be a list of strings")
+    return data
 
 
-# Paste model outputs here to score a run you did elsewhere.
-OUTPUTS: list = []
+def score_outputs(outputs):
+    violations = sum(bool(RULE_AS_REGEX.search(output)) for output in outputs)
+    compliant = len(outputs) - violations
+    print(
+        f"recorded prompt run: {compliant}/{len(outputs)} outputs complied "
+        f"with the observable em-dash rule"
+    )
 
 
-def main():
-    outputs = OUTPUTS
-    if not outputs:
-        try:
-            outputs = [ask_model(RULE_AS_PROMPT, p) for p in PROMPTS]
-        except NotImplementedError as e:
-            print(f"model side skipped: {e}")
-    if outputs:
-        violations = sum(1 for o in outputs if RULE_AS_REGEX.search(o))
-        print(f"prompt side: {len(outputs) - violations}/{len(outputs)} compliant")
+def check_regex_fixtures():
+    results = [
+        bool(RULE_AS_REGEX.search(text)) == expected
+        for text, expected in REGEX_FIXTURES
+    ]
+    passed = sum(results)
+    print(f"regex unit fixtures: {passed}/{len(results)} expected classifications")
+    return passed == len(results)
 
-    # The regex side needs no trial: it matches the character or it does not,
-    # every time, in microseconds, for free. That asymmetry is the whole tool.
-    print("regex side: catches the em dash 10/10 by construction")
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "outputs",
+        nargs="?",
+        help="optional JSON file containing recorded model outputs",
+    )
+    args = parser.parse_args(argv)
+
+    print(f"prompt instruction: {RULE_AS_PROMPT}")
+    if args.outputs:
+        score_outputs(load_outputs(args.outputs))
+    else:
+        print("recorded prompt run: not measured (no outputs file supplied)")
+
+    if not check_regex_fixtures():
+        raise SystemExit(1)
+    print("scope: detection only; a separate actor must reject or repair a match")
 
 
 if __name__ == "__main__":

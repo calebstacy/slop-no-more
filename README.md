@@ -1,107 +1,115 @@
 # slop-no-more
 
-A writing gate that catches the patterns making text sound like AI, the way
-a spell-checker catches typos: the same rules every time, a fix attached to
-every catch.
+A deterministic linter for configured prose patterns: the same inspectable
+checks every time, with an editorial repair attached to every match.
 
-Stop asking AI to do the parts that don't require intelligence.
-
-AI drafts a large share of the text people publish now, and the fastest
-checks still get skipped because they feel like they need another AI.
-They don't.
+Stop asking AI to do the checks that do not require intelligence.
 
 ## What it is
 
-A gate built for the people who own the words: content designers, UX
-writers, editors and anyone shipping prose an AI helped draft.
+`slop-no-more` gives a writing team executable policy for English-language
+prose. It looks for lexical strings, syntactic signatures and document-level
+distributions the team has chosen to review. A match is evidence that a
+configured pattern is present. It is not proof of who wrote the text, whether
+the writing is good or whether a clause is performing a particular rhetorical
+function.
 
-The giveaway words are the easy part, and plenty of tools catch them.
-This scanner also reads the layer underneath: the rhetorical moves, what
-a sentence is doing regardless of how it is phrased. Take "here's why
-this matters" and "the part worth sitting with." They share no
-vocabulary, and they are the same move, praising a point the text has not
-made yet. Paraphrase escapes a banned-word list; it does not escape a
-move pattern. AI slop is roughly a dozen moves wearing ten thousand
-costumes.
-
-The move concept comes from applied linguistics: John Swales' move
-analysis (1990) treats a stretch of discourse as a unit defined by the
-job it does, and Ken Hyland's metadiscourse research (2005) maps the
-language a text spends on itself. Slop, in that vocabulary, is
-metadiscourse doing content's job, at machine frequency. The full
-research anchors, including 2025 corpus studies of LLM prose, live in
-[references/moves.md](references/moves.md).
+That distinction is the point. A reviewer still decides which policy to adopt.
+Once the decision exists, the scanner makes it difficult to ignore by
+accident.
 
 Three layers run on every scan:
 
-| Layer | What it catches | Examples |
+| Layer | What is measured | Examples |
 |---|---|---|
-| 1. Strings | Lexical tells | "delve", "In conclusion", "I hope this helps", stock idioms at machine frequency |
-| 2. Moves | Rhetorical patterns | manufactured antithesis, phantom populations, cataphoric and anaphoric evaluation, invented adversaries, hedge clouds, heading afterbeats, 26 families total |
-| 3. Distribution | Document statistics | sentence-cadence uniformity, em-dash density, triad density, metadiscourse ratio, style-marker density |
+| 1. Strings | Literal lexical patterns | `delve`, `In conclusion`, stock boilerplate |
+| 2. Signatures | Known surface forms associated with editorial concerns | unsupported antithesis, unsourced population claims, evaluative framing, roadmap openings |
+| 3. Distribution | Document statistics | sentence-cadence variation, em-dash density, triad density, sentences containing configured signatures |
 
-The exit code equals the number of high-severity findings, so a scan can
-gate a build. Each scan also emits a fingerprint, per-move rates per
-1,000 words, for profiling a corpus or watching drift over time. And it
-all runs on Python's standard library alone: no model, no API key, no
-network, no pip dependencies. Cloning the repo is the entire
-installation.
+The catalog currently groups the signatures into 26 editorial families. Those
+family names describe the concern behind each rule; the regex can only detect
+the surface forms it encodes. Paraphrase can escape a pattern. A legitimate
+sentence can wear the same surface form. Every finding therefore includes the
+matched text and a repair rule a reviewer can inspect.
 
-## Why it matters
+The vocabulary comes from move analysis and metadiscourse research, both of
+which study what stretches of discourse do beyond carrying subject matter.
+That scholarship gives the catalog useful questions. It does not validate this
+project's particular regexes, severities or thresholds. See
+[the research notes and rule catalog](references/moves.md).
 
-The experiment this repo is built on: take one real style rule, "don't use
-em dashes." Handed to a language model as a polite instruction and run
-over ten test strings, compliance came back at seven. The same rule as one
-line of regex caught ten of ten, in microseconds, for free, and it will
-catch the next ten thousand at the same rate. Rules that live in prompts
-leak; rules that live in code hold. ([Run it yourself.](examples/prompt_vs_regex.py))
+The scanner uses Python's standard library alone: no model, API key, network
+call or runtime dependency.
 
-The [side-by-side demo](examples/side-by-side.md) shows the same thing at
-full scale: one prompt through three pipelines on `gpt-5.5` and
-`claude-sonnet-5`. Bare drafts scored 38.83 and 49.18 weighted density,
-both HEAVY SLOP. Strict writing instructions transformed the substance
-and barely moved the number (36.21 and 42.86): both models broke rules
-they had just been handed, inside the same response. This tool's
-draft-scan-repair loop finished both at 0.00, CLEAN.
+## What it can honestly guarantee
 
-And [one specimen nobody prompted](examples/from-the-wild.md): a page of
-AI-written text from the live web, machine-authored by the publishing
-platform's own disclosure, scanned as found at HEAVY SLOP and repaired to
-CLEAN, 72 percent shorter, every fact intact. The vanished words were
-carrying rhythm.
+Given the same text, scanner version and configuration, `slop-no-more` applies
+the same checks and returns the same findings. It can tell you:
 
-A survey of the field for this project (July 2026) found four tool
-families: instruction packs, which put rules in a prompt and cannot
-enforce them; rewriters, which change your text without showing findings;
-ML detectors, which output an authorship verdict nobody can explain; and
-word-list linters, which catch banned strings and miss the rhetoric. No
-open-source tool combining move-level analysis, deterministic scanning,
-repair rules, and CI enforcement turned up. This is that tool.
+- which configured patterns matched;
+- where they matched;
+- which repair the adopted policy recommends;
+- whether the configured CI threshold passed; and
+- how the reported measurements changed between comparable texts.
+
+It cannot tell you:
+
+- whether a human or a model wrote the text;
+- whether the text is good, true or persuasive;
+- whether every match performs the rhetorical function named by its family;
+- whether a clean scan preserves facts or meaning; or
+- how well the catalog performs outside the examples and tests in this repo.
+
+No precision, recall or authorship-detection claim is made here.
+
+## Why put the check in code?
+
+Prompts and code solve different parts of the job. A prompt can shape a draft.
+A deterministic check can verify an observable constraint after the draft
+exists. For a rule such as `do not use an em dash`, the check is a yes-or-no
+character test. Spending another model call to answer it adds cost and
+uncertainty without adding judgment.
+
+[The small prompt-versus-regex scaffold](examples/prompt_vs_regex.py) keeps the
+comparison honest. Supply your own recorded model outputs to measure prompt
+compliance; the bundled unit fixtures only demonstrate that the regex classifies
+its declared cases consistently. Detection is not enforcement: the check can
+fail a gate or route a match to repair, but another actor still has to change
+the prose.
+
+[The side-by-side case study](examples/side-by-side.md) records one generation
+per pipeline on two models. In those captured runs, instructions changed the
+drafts but did not eliminate all configured patterns; scan-guided repairs did.
+One generation per cell is a specimen, not a benchmark or a model pass-rate
+estimate.
+
+[The field note](examples/from-the-wild.md) records how one disclosed,
+AI-assisted public page exposed missing signatures in the catalog. It is a
+catalog-growth example, not an authorship test or evidence that the scanner
+measures information content.
 
 ## Install
 
 ### On claude.ai (no terminal needed)
 
-Custom skills are supported on paid claude.ai plans, and Claude can run
-this scanner inside its own code sandbox.
+Custom skills are available in Claude when code execution is enabled. The
+scanner runs inside that code environment.
 
-1. Download this repo as a ZIP (the green Code button, then Download ZIP).
-2. In claude.ai, open Settings, then Capabilities, then upload the ZIP as
-   a skill.
-3. Ask Claude: "Scan this draft with slop-no-more and apply the edit
-   rules."
+1. Download this repo as a ZIP.
+2. In Claude, open Customize, then Skills. Choose **Create skill**, then
+   **Upload a skill**, and upload the ZIP.
+3. Ask Claude: `Run slop-no-more on this draft. Show me each match before
+   applying its repair rule.`
 
-### On ChatGPT or any AI chat that can run Python (no terminal needed)
+### On ChatGPT or another chat with Python execution
 
-1. Download [`src/slop_no_more/scanner.py`](src/slop_no_more/scanner.py),
-   one self-contained file.
-2. Attach it to a chat along with your draft.
-3. Ask: "Run this scanner on my draft, show the findings, and apply each
-   finding's edit rule."
+1. Download [`src/slop_no_more/scanner.py`](src/slop_no_more/scanner.py).
+2. Attach it with the draft.
+3. Ask the chat to run the scanner, show the findings and apply only the
+   repairs you approve.
 
-Without code execution, a model can only promise to follow the rules,
-which is the exact pipeline the demos show failing. The scanner is the
-point; get it run.
+Without code execution, a model can discuss the policy but cannot run the
+deterministic check.
 
 ### In Claude Code
 
@@ -109,36 +117,59 @@ point; get it run.
 git clone https://github.com/calebstacy/slop-no-more ~/.claude/skills/slop-no-more
 ```
 
-The [SKILL.md](SKILL.md) wires the scanner into a drafting workflow with
-two modes: build, which pins genre stance, speaker, claim and move
-instructions before generating; and gate, which scans, applies the edit
-rule attached to each finding, regenerates what was load-bearing, then
-rescans.
+[SKILL.md](SKILL.md) wires the scanner into a drafting workflow with two modes:
+build, which supplies editorial constraints before generation, and review,
+which scans a finished draft and routes matches to repairs.
 
-### On the command line, and in CI
-
-For the engineers: deterministic, explainable, zero-model, and the exit
-code is the gate. Don't ask a model to catch what a regex can catch.
+### On the command line
 
 ```bash
 pip install git+https://github.com/calebstacy/slop-no-more
 slop scan draft.md
 ```
 
-Or with no install at all:
+Or with no install:
 
 ```bash
 python3 scripts/slop_scan.py draft.md
 ```
 
-The exit code gates CI directly:
+## Use it as a CI policy
 
-```yaml
-- run: pip install git+https://github.com/calebstacy/slop-no-more
-- run: slop scan docs/ README.md
+The gate threshold is explicit:
+
+```bash
+slop scan docs/ README.md --fail-on high    # default: high findings fail
+slop scan docs/ README.md --fail-on medium  # high or medium findings fail
+slop scan docs/ README.md --fail-on never   # report only
+slop scan docs/ --disable heading-afterbeat # repeat for deliberate exclusions
 ```
 
-Full workflow: [examples/github-action.yml](examples/github-action.yml).
+Exit codes are a stable machine contract:
+
+| Code | Meaning |
+|---|---|
+| `0` | The configured gate passed |
+| `1` | The configured gate failed |
+| `2` | The command or option was invalid |
+| `3` | An input could not be read or was unsupported |
+
+`--severity high|medium|low` filters what is displayed; it does not change the
+gate. `--json` and `--fingerprint` change the output shape; they do not disable
+the gate. `--disable RULE` is repeatable and records the effective rule set in
+the fingerprint. Use `--fail-on never` when collecting measurements without
+gating.
+
+Directory scans discover and accept only `.md`, `.markdown` and `.txt` files.
+HTML, MDX and RST require prose extraction first; passing them explicitly
+returns input error `3` instead of treating raw markup as prose. One scan is
+limited to 1,000 files, 1 MiB per file and 20 MiB total input; exceeding a
+limit also returns input error `3`.
+Directory discovery skips file symlinks; pass an intended file explicitly.
+
+The [GitHub Actions example](examples/github-action.yml) shows the full
+workflow. Pin both this scanner and third-party actions to reviewed commits in
+production; a moving default branch is not a reproducible policy.
 
 ## What a scan looks like
 
@@ -146,51 +177,70 @@ Output on [examples/sample-slop.md](examples/sample-slop.md), trimmed:
 
 ```text
 examples/sample-slop.md
-verdict: HEAVY SLOP   density: 452.05 weighted hits / 1k words   high-severity: 9
+verdict: HEAVY SLOP   density: 390.41 weighted hits / 1k words
+high: 7   medium: 5   gate: FAIL (fail-on: high)
   [high  ]  L3  (manufactured-antithesis)  "not about wording, it's about"
-           fix: Name who actually asserted X (with a source), or delete the denial and state Y as a plain positive claim.
+           fix: Name who asserted X, or delete the denial and state Y as a positive claim.
   [high  ]  L3  (phantom-population)  "Most teams"
-           fix: Cite the source and number, downgrade to a first-person observation ('the teams I have seen'), or delete the claim.
-  [high  ]  L5  (cataphoric-evaluation)  "The key insight"
-           fix: Delete the evaluation and lead with the content. If the point matters, the sentence that states it must carry that weight itself.
-  [high  ]  L5  (anonymous-authority)  "Research shows"
-           fix: Name the source and claim precisely, or remove the authority wrapper and state the claim at the confidence level you can defend.
-  [medium]  L5  (benefit-cascade)  "foster engagement while empowering them to streamline"
-           fix: Replace the benefit stack with the mechanism: who does what differently, and what changes because of it.
-  ...9 more findings
-  fingerprint: words=73  sentences=9  cadence_cv=0.571  emdash_per_1k=0.0  move_ratio_pct=22.2
+           fix: Cite the source and number, narrow to observed cases, or delete the claim.
+  [medium]  L5  (benefit-cascade)  "foster engagement while empowering them"
+           fix: Replace the benefit stack with the mechanism.
+  ...more findings
+  fingerprint: words=73  sentences=9  sentences_with_moves_pct=77.8 ...
+  policy: policy-[content hash] (ruleset: snm-[content hash])
 ```
 
-Flags: `--severity high` (strongest signals only), `--json`
-(machine-readable), `--fingerprint` (the vector only). Verdict bands run
-CLEAN, MOSTLY CLEAN, SLOP PRESENT, HEAVY SLOP, from a severity-weighted
-density per 1,000 words.
+The labels `CLEAN`, `MOSTLY CLEAN`, `SLOP PRESENT` and `HEAVY SLOP` summarize
+configured occurrences. They are not grades of writing quality or authorship
+verdicts. At 120 words or more, the label uses weighted occurrences per 1,000
+words. Below 120 words, it uses finding counts: no findings is `CLEAN`; one or
+two non-high findings is `MOSTLY CLEAN`; a high finding or three to five total
+findings is `SLOP PRESENT`; and three high or six total findings is `HEAVY
+SLOP`. Document-rate rules are not judged below that floor.
+
+Every report also emits a fingerprint with the scanner version, schema version,
+ruleset identifier, counts and rates. Compare fingerprints only when the
+scanner version, schema, ruleset,
+configuration and genre are compatible. A change can show drift in configured
+patterns; it does not explain why the drift happened.
 
 ## Honest edges
 
-Quoted spans, inline code, fenced blocks and blockquotes are never linted:
-quoting a move to discuss it is not performing it. A line containing
-`slop-ignore` is skipped, so deliberate rhetorical choices stay possible
-and the gate stays trustworthy. Distribution rates are reported but never
-judged below 120 words, where one em dash would otherwise read as heavy
-density.
+Checks anchored to the start or end of prose use logical Markdown and paragraph
+boundaries, not physical file lines. Soft-wrapping one paragraph across several
+lines does not create new starts for anchored rules.
 
-The scanner only catches known costumes of each move. The functional
-definitions in [references/moves.md](references/moves.md) are the rubric a
-human applies to novel ones, and every human catch becomes a new pattern
-with a test; the catalog's research lineage (Hyland 2005; Swales 1990) and
-its full growth discipline live in that file. One calibration point from
-its first live outing: an essay a human reader had flagged as painful
-scored 53.9 weighted density, and the draft that later passed the same
-reader's ear scored 0.0. The instrument and the ear agreed on rank order
-at first try.
+The scanner excludes compatible fenced code, lines whose content begins with
+`>`, matching same-line inline-code spans and complete paired straight or curly
+quotation spans. It handles double-quoted and single-quoted spans. A
+contraction inside a complete quoted span is masked with the rest of that span.
+Apostrophes in unquoted prose remain ordinary, lintable characters rather than
+quote delimiters. A line containing `slop-ignore` is skipped, and every
+operative ignore is reported by line number and matched token in text, report
+JSON and fingerprint JSON. Unclosed quote marks are still ordinary prose.
+
+When a document contains structural Markdown but zero prose words after
+masking, density and per-move rates are `n/a` in text output and `null` in JSON.
+Structural findings still count toward the verdict and configured gate.
+
+The scanner catches known surface forms, not novel paraphrases or rhetorical
+functions. The functional definitions in [references/moves.md](references/moves.md)
+are editorial rubrics for a human reviewer. When a repeated false positive or
+false negative exposes a bad boundary, the rule needs a specimen and a
+regression test before the catalog changes.
+
+The current severities and density bands are policy defaults, not validated
+psychometric thresholds. Teams should review them against their own genres and
+failure costs before making them release criteria.
 
 ## Dogfood
 
-This README scans CLEAN with its own scanner, as do SKILL.md, the move
-catalog and both demo documents. CI enforces that on every commit.
+Tests exercise the scanner's declared patterns and boundaries. CI also scans
+the public documentation with the same executable rules. A passing dogfood
+scan means those configured checks passed at the selected threshold, not that
+the documents are beyond editorial review.
 
 ## License
 
-MIT. No telemetry, no network calls, no models. It is a Python file that
-reads your text and tells you the truth about it.
+MIT. No telemetry, network calls or models. It is a small, inspectable program
+that reads text and reports the configured evidence it can actually observe.

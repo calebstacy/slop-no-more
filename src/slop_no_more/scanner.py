@@ -1,34 +1,42 @@
 #!/usr/bin/env python3
-"""slop-no-more scanner: three-layer AI-tell detection for prose.
+"""slop-no-more: deterministic checks for configured English prose patterns.
 
 Layer 1 (strings):      lexical tells. Diction memes, boilerplate, wrap-ups.
-Layer 2 (moves):        rhetorical moves. Functional patterns that survive
-                        paraphrase because the pattern family targets the move's
-                        syntactic signature, not a fixed phrase.
+Layer 2 (moves):        configured rhetorical-pattern families. Regexes match
+                        known surface forms; human review decides whether the
+                        named rhetorical function applies in context.
 Layer 3 (distribution): document-level statistics. Cadence variance, em-dash
-                        density, triad density, metadiscourse ratio.
+                        density, triad density, sentence-with-move rate.
 
 Every scan also emits a fingerprint: per-move rates per 1,000 words plus the
-distribution metrics, so a corpus can be profiled and drift can be tracked
-over time.
+distribution metrics, so a corpus can be compared under a versioned ruleset.
 
 Usage:
   slop scan <path> [<path>...]        full report + verdict
   slop scan <path> --severity high    only high-severity findings
   slop scan <path> --json             machine-readable output
   slop scan <path> --fingerprint      fingerprint vector only (JSON)
+  slop scan <path> --fail-on medium   gate on medium and high findings
+  slop scan <path> --fail-on never    output only; never fail the gate
+  slop scan <path> --disable RULE     disable a registered rule
 
 A line containing `slop-ignore` (or the legacy `gate-ignore` / `unslop-ignore`)
-is skipped. Blockquotes, fenced code, inline backticks, and "quoted spans" are
-not linted: quoting a move to discuss it is not performing it.
-Exit code = number of high-severity findings (capped at 100), so CI can gate.
+is skipped. Lines whose content begins with `>`, compatible fenced code,
+same-line matching backtick spans, and supported paired quote spans are not
+linted: quoting a move to discuss it is not performing it.
+Exit codes: 0 pass, 1 gate failure, 2 usage error, 3 input/read error.
 """
 
+import argparse
+import hashlib
 import json
 import re
 import statistics
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+
+SCANNER_VERSION = "0.2.0"
 
 # --------------------------------------------------------------------------
 # Layer 2: the move catalog.
@@ -315,18 +323,20 @@ MOVES = [
             # NB: the regular-participle class is -ed/-ing/-wn with a 3+ char stem, never a bare
             # -en: "op|en", "oft|en", "ev|en" and "t|en" are not participles, and -en cost a false
             # fire on "Published research, open dependencies". Irregulars are listed explicitly.
-            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,48},\s+(?!not\b)(?:[a-z]{3,}(?:ed|ing|wn)|built|made|kept|shown|sent|met|gone|lost|done|taken|given|written|broken|chosen|driven|proven|known|held|left|told|found|brought|caught|taught|seen|spent|split|dealt)\b[^,\n]{0,34}\.?$",
+            r"(?m)^ {0,3}#{1,6}[ \t]+[A-Z][^,\n]{2,48},\s+(?!not\b)(?:[a-z]{3,}(?:ed|ing|wn)|built|made|kept|shown|sent|met|gone|lost|done|taken|given|written|broken|chosen|driven|proven|known|held|left|told|found|brought|caught|taught|seen|spent|split|dealt)\b[^,\n]{0,34}\.?$",
             # sequel tag: "Teaching and poetry, then product design."
-            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,48},\s+then\s+[^,\n]{2,44}\.?$",
+            r"(?m)^ {0,3}#{1,6}[ \t]+[A-Z][^,\n]{2,48},\s+then\s+[^,\n]{2,44}\.?$",
             # counted heading with an appended tag: "Four rules, and the strings that came out of
             # them." / "Four things, and the last one is the point."
-            r"(?m)^#{0,6}\s*(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+)\s+[a-z]+,\s+and\s+the\s+[^,\n]{2,48}\.?$",
-            # meta-claim tag, anywhere: "…, and the last one is the point."
-            r",\s+and\s+the\s+(?:last|first|second|third|next|only|real|best|worst|hardest|simplest|biggest)\s+one\s+(?:is|was|matters|counts|wins|does|did)\b",
-            # bare ordinal meta-tag: "Four things, the last one matters."
-            r",\s+the\s+(?:last|first|next|only|hardest|biggest)\s+one\s+(?:is\s+the\s+\w+|matters|counts)\b",
+            r"(?m)^ {0,3}#{1,6}[ \t]+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+)\s+[a-z]+,\s+and\s+the\s+[^,\n]{2,48}\.?$",
+            # meta-claim tag in an explicit Markdown heading:
+            # "…, and the last one is the point."
+            r"(?m)^ {0,3}#{1,6}[ \t]+[^,\n]{2,64},\s+and\s+the\s+(?:last|first|second|third|next|only|real|best|worst|hardest|simplest|biggest)\s+one\s+(?:is|was|matters|counts|wins|does|did)\b[^,\n]*$",
+            # bare ordinal meta-tag in an explicit Markdown heading:
+            # "Four things, the last one matters."
+            r"(?m)^ {0,3}#{1,6}[ \t]+[^,\n]{2,64},\s+the\s+(?:last|first|next|only|hardest|biggest)\s+one\s+(?:is\s+the\s+\w+|matters|counts)\b[^,\n]*$",
             # prepositional label tag: "The practice, in order" / "The before, on its own terms"
-            r"(?m)^#{0,6}\s*[A-Z][^,\n]{2,34},\s+(?:in|on|at|by|for|with|from|under|after|before|through)\s+[a-z][^,\n]{2,26}$",
+            r"(?m)^ {0,3}#{1,6}[ \t]+[A-Z][^,\n]{2,34},\s+(?:in|on|at|by|for|with|from|under|after|before|through)\s+[a-z][^,\n]{2,26}$",
         ],
     },
     {
@@ -454,12 +464,12 @@ STYLE_MARKER_RE = re.compile(
 
 L3_RULES = {
     # metric: (medium_threshold, high_threshold, direction, message)
-    "cadence_cv":        (0.40, 0.30, "below", "Sentence lengths are uniform, the single strongest structural tell. Vary on purpose: let one run, stop the next short."),
-    "emdash_per_1k":     (3.0, 6.0, "above", "Em-dash density is machine-register. Convert most to commas or periods."),
-    "triad_per_1k":      (5.0, 9.0, "above", "Rule-of-three density: too many triadic lists. Break the rhythm: two items, or four, or one."),
-    "move_ratio_pct":    (6.0, 10.0, "above", "Metadiscourse inflation: too much text about the text. Cut the framing, keep the content."),
-    "antithesis_per_1k": (2.0, 4.0, "above", "Contrast-frame density: the argument leans on staged corrections instead of positive claims."),
-    "style_marker_per_1k": (12.0, 24.0, "above", "AI style-word density is high (per the excess-vocabulary literature; see references/moves.md). Replace decorative style words with domain nouns, verbs, and specific mechanisms."),
+    "cadence_cv":        (0.40, 0.30, "below", "Sentence-length variation falls below the configured range. Review the cadence and vary it where the subject calls for a change."),
+    "emdash_per_1k":     (3.0, 6.0, "above", "Em-dash rate exceeds the configured range. Review each dash and keep it only where it clarifies the sentence."),
+    "triad_per_1k":      (5.0, 9.0, "above", "Triadic-list rate exceeds the configured range. Review whether each three-part list reflects the content or repeats a cadence."),
+    "sentences_with_moves_pct": (6.0, 10.0, "above", "Configured rhetorical moves appear in a high share of sentences. Review the matched sentences and keep only the framing the argument needs."),
+    "antithesis_per_1k": (2.0, 4.0, "above", "Configured contrast-frame rate exceeds the target. Review whether each correction has an attributable claim to correct."),
+    "style_marker_per_1k": (12.0, 24.0, "above", "Configured style-marker rate exceeds the target. Review the matches and prefer domain nouns, literal verbs, and specific mechanisms where they carry the meaning more directly."),
 }
 
 SEV_WEIGHT = {"high": 3.0, "medium": 1.5, "low": 0.5}
@@ -468,209 +478,1049 @@ SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
 IGNORE_TOKENS = ("slop-ignore", "gate-ignore", "unslop-ignore")
 
 
-def prepare_lines(text):
-    """Return (lint_lines, prose_lines). Masks code/quotes; None = skip line."""
-    # Mask inline code and double-quoted spans over the WHOLE text first, so a
-    # quoted span that wraps across a line break is still skipped (quoting a
-    # tell != using it). Newlines are preserved so line numbers stay true.
-    def blank(m):
-        return re.sub(r"[^\n]", " ", m.group(0))
-    text = re.sub(r"`[^`\n]+`", blank, text)
-    text = re.sub(r"\"[^\"]{0,300}?\"", blank, text, flags=re.S)
-    text = re.sub(r"“[^”]{0,300}?”", blank, text, flags=re.S)
+# --------------------------------------------------------------------------
+# v0.2 runtime
+#
+# The catalog above remains data. This runtime normalizes ordinary prose wraps
+# before applying it, maps every match back to source coordinates, and gives
+# the CLI an explicit policy/gating contract.
+# --------------------------------------------------------------------------
 
-    lint, prose = [], []
-    in_fence = False
-    for raw in text.splitlines():
-        line = raw
-        stripped = line.strip()
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            in_fence = not in_fence
-            lint.append(None); prose.append(None)
-            continue
-        if in_fence or any(tok in line for tok in IGNORE_TOKENS):
-            lint.append(None); prose.append(None)
-            continue
-        if stripped.startswith(">"):
-            lint.append(None); prose.append(None)
-            continue
-        lint.append(line)
-        # prose lines exclude structure: headers, tables, list markers kept as text
-        if stripped.startswith("#") or stripped.startswith("|"):
-            prose.append(None)
-        else:
-            prose.append(line)
-    return lint, prose
+SUPPORTED_EXTENSIONS = frozenset({".md", ".markdown", ".txt"})
+MAX_FILE_BYTES = 1 * 1024 * 1024
+MAX_INPUT_FILES = 1000
+MAX_TOTAL_BYTES = 20 * 1024 * 1024
+FINGERPRINT_SCHEMA_VERSION = 2
+RATE_FLOOR_WORDS = 120
+FAIL_LEVELS = ("high", "medium", "never")
+WORD_RE = re.compile(r"[^\W_]+(?:['’\u2011-][^\W_]+)*", re.UNICODE)
+ATX_HEADING_RE = re.compile(r" {0,3}#{1,6}(?:[ \t]+|$)")
+LIST_ITEM_RE = re.compile(
+    r" {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)"
+)
+FENCE_OPEN_RE = re.compile(r" {0,3}(`{3,}|~{3,})(.*)$")
+FENCE_CLOSE_RE = re.compile(r" {0,3}(`{3,}|~{3,})[ \t]*$")
+HARD_BOUNDARY = "\n.\n"
+SENTENCE_CLOSERS = "\"'”’)]}"
+NONTERMINAL_ABBREVIATIONS = frozenset(
+    {
+        "al.",
+        "dr.",
+        "e.g.",
+        "etc.",
+        "fig.",
+        "i.e.",
+        "jr.",
+        "mr.",
+        "mrs.",
+        "ms.",
+        "no.",
+        "prof.",
+        "sr.",
+        "st.",
+        "vs.",
+    }
+)
+MASK_PATTERN_SPECS = (
+    (r"(?<!`)(`+)(?!`)[^\r\n]*?(?<!`)\1(?!`)", 0),
+    (r'"(?:\\.|[^"\\])*"', re.DOTALL),
+    (r"“[^”]*”", re.DOTALL),
+    (r"‘(?:[^’]|(?<=\w)’(?=\w))*?’(?!\w)", re.DOTALL),
+    (
+        r"(?<!\w)'(?:\\.|[^'\\]|(?<=\w)'(?=\w))*?'(?!\w)",
+        re.DOTALL,
+    ),
+)
 
 
-def sentences_of(prose_lines):
-    text = " ".join(l for l in prose_lines if l)
-    text = re.sub(r"\s+", " ", text)
-    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z\"'“(])", text)
-    sents = [p for p in parts if len(p.split()) >= 2]
-    return sents
-
-
-def scan_text(text, name="<text>"):
-    """Scan a string. Returns the same report dict as scan_file."""
-    lint_lines, prose_lines = prepare_lines(text)
-    findings = []
-
-    for lineno, line in enumerate(lint_lines, 1):
-        if line is None:
-            continue
-        for lex_name, pat, sev, fix in LEXICAL:
-            for m in re.finditer(pat, line):
-                findings.append({
-                    "layer": 1, "move": lex_name, "line": lineno,
-                    "match": m.group(0), "severity": sev, "fix": fix,
-                })
-        for move in MOVES:
-            if move.get("skip_if") and re.search(move["skip_if"], line, flags=re.IGNORECASE):
-                continue
-            for pat in move["patterns"]:
-                for m in re.finditer(pat, line, flags=0 if pat.startswith("(?m)") else re.IGNORECASE):
-                    findings.append({
-                        "layer": 2, "move": move["name"], "line": lineno,
-                        "match": m.group(0).strip(), "severity": move["severity"],
-                        "fix": move["edit_rule"],
-                    })
-
-    # dedupe overlapping matches on same line+move
-    seen = set()
-    deduped = []
-    for f in findings:
-        key = (f["line"], f["move"], f["match"][:40])
-        if key not in seen:
-            seen.add(key)
-            deduped.append(f)
-    findings = deduped
-
-    # ---- Layer 3 ----
-    prose_text = " ".join(l for l in prose_lines if l)
-    words = re.findall(r"[A-Za-z'’-]+", prose_text)
-    n_words = max(len(words), 1)
-    sents = sentences_of(prose_lines)
-    metrics = {"words": len(words), "sentences": len(sents)}
-
-    if len(sents) >= 8:
-        lens = [len(s.split()) for s in sents]
-        mean = statistics.mean(lens)
-        sd = statistics.pstdev(lens)
-        metrics["mean_sentence_len"] = round(mean, 1)
-        metrics["cadence_cv"] = round(sd / mean, 3) if mean else 0.0
-    metrics["emdash_per_1k"] = round(prose_text.count("—") * 1000 / n_words, 2)
-    triads = re.findall(r",\s+[^,.;:\n]{2,50},\s+(?:and|or)\s+", prose_text)
-    metrics["triad_per_1k"] = round(len(triads) * 1000 / n_words, 2)
-    move_lines = {f["line"] for f in findings if f["layer"] == 2}
-    if sents:
-        metrics["move_ratio_pct"] = round(100.0 * len(move_lines) / max(len(sents), 1), 1)
-    anti = sum(1 for f in findings if f["move"] == "manufactured-antithesis")
-    metrics["antithesis_per_1k"] = round(anti * 1000 / n_words, 2)
-    style_hits = STYLE_MARKER_RE.findall(prose_text)
-    metrics["style_marker_count"] = len(style_hits)
-    if len(words) >= 250 or len(style_hits) >= 4:
-        metrics["style_marker_per_1k"] = round(len(style_hits) * 1000 / n_words, 2)
-
-    # Rate metrics are meaningless on very short texts: one em dash in a
-    # 40-word note is 25 per 1k. Below the floor, rates are still reported in
-    # the fingerprint but never converted to findings (same design as the
-    # 250-word style-marker guard and the 8-sentence cadence guard).
-    RATE_FLOOR_WORDS = 120
-    for metric, (med, high, direction, msg) in L3_RULES.items():
-        if metric not in metrics:
-            continue
-        if metrics["words"] < RATE_FLOOR_WORDS and metric != "cadence_cv":
-            continue
-        v = metrics[metric]
-        hit = None
-        if direction == "below":
-            if v < high: hit = "high"
-            elif v < med: hit = "medium"
-        else:
-            if v > high: hit = "high"
-            elif v > med: hit = "medium"
-        if hit:
-            findings.append({
-                "layer": 3, "move": metric, "line": 0,
-                "match": f"{metric}={v}", "severity": hit, "fix": msg,
-            })
-
-    # ---- fingerprint: per-move rates + metrics ----
-    fp = dict(metrics)
-    for move in MOVES:
-        c = sum(1 for f in findings if f["move"] == move["name"])
-        fp[f"mv_{move['name']}_per_1k"] = round(c * 1000 / n_words, 2)
-
-    weight = sum(SEV_WEIGHT[f["severity"]] for f in findings)
-    density = round(weight * 1000 / n_words, 2)
-    high_n = sum(1 for f in findings if f["severity"] == "high")
-    if density < 1.5 and high_n == 0:
-        verdict = "clean"
-    elif density < 4:
-        verdict = "mostly clean"
-    elif density < 10:
-        verdict = "slop present"
-    else:
-        verdict = "heavy slop"
-
-    findings.sort(key=lambda f: (SEV_ORDER[f["severity"]], f["layer"], f["line"]))
+def _ruleset_payload():
     return {
-        "file": str(name), "verdict": verdict, "density": density,
-        "high": high_n, "findings": findings, "fingerprint": fp,
+        "engine": {
+            "fingerprint_schema": FINGERPRINT_SCHEMA_VERSION,
+            "word_pattern": WORD_RE.pattern,
+            "sentence_boundary_policy": {
+                "terminal_marks": ".!?",
+                "hard_boundary": HARD_BOUNDARY,
+                "nonterminal_abbreviations": sorted(
+                    NONTERMINAL_ABBREVIATIONS
+                ),
+                "initialisms_are_nonterminal": True,
+                "lowercase_sentence_starts": True,
+            },
+            "atx_heading_pattern": ATX_HEADING_RE.pattern,
+            "list_item_pattern": LIST_ITEM_RE.pattern,
+            "fence_policy": {
+                "open_pattern": FENCE_OPEN_RE.pattern,
+                "close_pattern": FENCE_CLOSE_RE.pattern,
+                "closer_matches_marker": True,
+                "closer_minimum_opener_length": True,
+            },
+            "rate_floor_words": RATE_FLOOR_WORDS,
+            "max_file_bytes": MAX_FILE_BYTES,
+            "max_input_files": MAX_INPUT_FILES,
+            "max_total_bytes": MAX_TOTAL_BYTES,
+            "case_insensitive": True,
+            "sentence_move_metric": "sentences_with_moves_pct",
+            "anchored_boundary_policy": "logical Markdown blocks",
+            "zero_prose_rate_policy": "null",
+            "mask_patterns": [
+                {"pattern": pattern, "flags": flags}
+                for pattern, flags in MASK_PATTERN_SPECS
+            ],
+            "ignore_policy": {
+                "tokens": IGNORE_TOKENS,
+                "match": "literal substring on one source line",
+                "scope": "skip the matched source line",
+                "reporting": "line number and matched token",
+            },
+            "supported_extensions": sorted(SUPPORTED_EXTENSIONS),
+            "directory_symlink_policy": "skip",
+            "severity_weights": SEV_WEIGHT,
+            "severity_order": SEV_ORDER,
+            "fail_levels": FAIL_LEVELS,
+            "short_verdict_policy": {
+                "floor_words": RATE_FLOOR_WORDS,
+                "mostly_clean": "1-2 findings and no high",
+                "slop_present": "1-2 findings with high, or 3-5 total",
+                "heavy_slop": "3+ high, or 6+ total",
+            },
+            "hard_boundary": HARD_BOUNDARY,
+        },
+        "lexical": [
+            {
+                "name": name,
+                "pattern": pattern,
+                "severity": severity,
+                "fix": fix,
+            }
+            for name, pattern, severity, fix in LEXICAL
+        ],
+        "moves": [
+            {
+                "name": move["name"],
+                "definition": move["definition"],
+                "patterns": move["patterns"],
+                "severity": move["severity"],
+                "edit_rule": move["edit_rule"],
+                "skip_if": move.get("skip_if"),
+            }
+            for move in MOVES
+        ],
+        "distribution": L3_RULES,
     }
 
 
-def scan_file(path):
-    text = Path(path).read_text(encoding="utf-8", errors="replace")
-    return scan_text(text, name=path)
+RULESET_ID = "snm-" + hashlib.sha256(
+    json.dumps(
+        _ruleset_payload(), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+).hexdigest()[:16]
+
+RULE_NAMES = frozenset(
+    [name for name, _pattern, _severity, _fix in LEXICAL]
+    + [move["name"] for move in MOVES]
+    + list(L3_RULES)
+)
 
 
-def run(argv):
-    args = [a for a in argv if not a.startswith("--")]
-    flags = {a for a in argv if a.startswith("--")}
-    sev_only = "high" if "--severity" in " ".join(argv) and "high" in argv else None
-    if not args:
-        print(__doc__)
-        return 0
+@dataclass(frozen=True)
+class PreparedBuffer:
+    text: str
+    source_offsets: tuple
+    source_lines: tuple
+    source_columns: tuple
 
-    paths = []
-    for a in args:
-        if a == "high":
-            continue
-        p = Path(a)
-        if p.is_dir():
-            for ext in (".md", ".markdown", ".mdx", ".txt", ".rst", ".html"):
-                paths.extend(sorted(p.rglob(f"*{ext}")))
+
+@dataclass(frozen=True)
+class PreparedDocument:
+    lint: PreparedBuffer
+    prose: PreparedBuffer
+    lint_lines: tuple
+    ignored_lines: tuple
+
+
+def _blank_match(chars, match):
+    """Mask a complete paired span while preserving newline positions."""
+    for index in range(match.start(), match.end()):
+        if chars[index] not in "\r\n":
+            chars[index] = " "
+
+
+def _mask_nonprose_spans(text):
+    """Mask complete inline-code and quoted spans without a length cap."""
+    chars = list(text)
+    for pattern_source, flags in MASK_PATTERN_SPECS:
+        pattern = re.compile(pattern_source, flags)
+        for match in pattern.finditer(text):
+            _blank_match(chars, match)
+    return "".join(chars)
+
+
+def _make_buffer(parts):
+    text_parts = []
+    offsets = []
+    lines = []
+    columns = []
+    for value, value_offsets, value_lines, value_columns in parts:
+        text_parts.append(value)
+        offsets.extend(value_offsets)
+        lines.extend(value_lines)
+        columns.extend(value_columns)
+    return PreparedBuffer(
+        "".join(text_parts), tuple(offsets), tuple(lines), tuple(columns)
+    )
+
+
+def prepare_document(text):
+    """Build normalized lint/prose buffers and offset maps to the source."""
+    masked = _mask_nonprose_spans(text)
+    original_lines = text.splitlines(keepends=True)
+    masked_lines = masked.splitlines(keepends=True)
+
+    lint_parts = []
+    prose_parts = []
+    line_buffers = []
+    ignored_lines = []
+    fence_marker = None
+    fence_length = 0
+    source_offset = 0
+    lint_soft_open = False
+    prose_soft_open = False
+
+    def append_synthetic(parts, value, line_number, column):
+        parts.append(
+            (
+                value,
+                (-1,) * len(value),
+                (line_number,) * len(value),
+                (column,) * len(value),
+            )
+        )
+
+    def append_boundary(parts, line_number, column):
+        append_synthetic(parts, HARD_BOUNDARY, line_number, column)
+
+    for line_number, (original_raw, masked_raw) in enumerate(
+        zip(original_lines, masked_lines), 1
+    ):
+        content_len = len(masked_raw.rstrip("\r\n"))
+        original_content = original_raw[:content_len]
+        masked_content = masked_raw[:content_len]
+        stripped = original_content.strip()
+        if fence_marker is not None:
+            close_match = FENCE_CLOSE_RE.fullmatch(original_content)
+            if (
+                close_match is not None
+                and close_match.group(1)[0] == fence_marker
+                and len(close_match.group(1)) >= fence_length
+            ):
+                fence_marker = None
+                fence_length = 0
+            allowed = False
         else:
-            paths.append(p)
+            open_match = FENCE_OPEN_RE.fullmatch(original_content)
+            if (
+                open_match is not None
+                and not (
+                    open_match.group(1)[0] == "`"
+                    and "`" in open_match.group(2)
+                )
+            ):
+                fence_marker = open_match.group(1)[0]
+                fence_length = len(open_match.group(1))
+                allowed = False
+            else:
+                ignore_matches = tuple(
+                    token
+                    for token in IGNORE_TOKENS
+                    if token in original_content
+                )
+                if ignore_matches and not stripped.startswith(">"):
+                    ignored_lines.append(
+                        {
+                            "line": line_number,
+                            "tokens": list(ignore_matches),
+                        }
+                    )
+                allowed = (
+                    not ignore_matches
+                    and not stripped.startswith(">")
+                )
 
-    reports = [scan_file(p) for p in paths]
+        offsets = tuple(range(source_offset, source_offset + content_len))
+        lines = (line_number,) * content_len
+        columns = tuple(range(1, content_len + 1))
+        is_heading = ATX_HEADING_RE.match(original_content) is not None
+        is_table = stripped.startswith("|")
+        list_match = LIST_ITEM_RE.match(original_content)
+        structural = is_heading or is_table
 
-    if "--fingerprint" in flags:
-        print(json.dumps({r["file"]: r["fingerprint"] for r in reports}, indent=2))
+        if allowed and stripped:
+            full_part = (masked_content, offsets, lines, columns)
+            line_buffers.append(_make_buffer([full_part]))
+
+            if structural:
+                if lint_parts:
+                    append_boundary(
+                        lint_parts, line_number, content_len + 1
+                    )
+                lint_parts.append(full_part)
+                append_boundary(lint_parts, line_number, content_len + 1)
+                lint_soft_open = False
+
+                append_boundary(
+                    prose_parts, line_number, content_len + 1
+                )
+                prose_soft_open = False
+            elif list_match:
+                body_start = list_match.end()
+                body_part = (
+                    masked_content[body_start:],
+                    offsets[body_start:],
+                    lines[body_start:],
+                    columns[body_start:],
+                )
+                if lint_parts:
+                    append_boundary(
+                        lint_parts, line_number, content_len + 1
+                    )
+                lint_parts.append(body_part)
+                lint_soft_open = True
+
+                if prose_parts:
+                    append_boundary(
+                        prose_parts, line_number, content_len + 1
+                    )
+                prose_parts.append(body_part)
+                prose_soft_open = True
+            else:
+                if lint_soft_open:
+                    append_synthetic(
+                        lint_parts, " ", line_number, content_len + 1
+                    )
+                lint_parts.append(full_part)
+                lint_soft_open = True
+
+                if prose_soft_open:
+                    append_synthetic(
+                        prose_parts, " ", line_number, content_len + 1
+                    )
+                prose_parts.append(full_part)
+                prose_soft_open = True
+        else:
+            append_boundary(lint_parts, line_number, content_len + 1)
+            append_boundary(prose_parts, line_number, content_len + 1)
+            lint_soft_open = False
+            prose_soft_open = False
+
+        source_offset += len(original_raw)
+
+    return PreparedDocument(
+        lint=_make_buffer(lint_parts),
+        prose=_make_buffer(prose_parts),
+        lint_lines=tuple(line_buffers),
+        ignored_lines=tuple(ignored_lines),
+    )
+
+
+def prepare_lines(text):
+    """Return the legacy line views, backed by the v0.2 masking rules."""
+    prepared = prepare_document(text)
+    source_lines = text.splitlines()
+    lint = [None] * len(source_lines)
+    prose = [None] * len(source_lines)
+    for line_buffer in prepared.lint_lines:
+        if not line_buffer.source_lines:
+            continue
+        index = line_buffer.source_lines[0] - 1
+        lint[index] = line_buffer.text
+        source_line = source_lines[index]
+        stripped = source_line.strip()
+        if not (
+            ATX_HEADING_RE.match(source_line)
+            or stripped.startswith("|")
+        ):
+            prose[index] = line_buffer.text
+    return lint, prose
+
+
+def _period_is_nonterminal(text, period_index):
+    token_match = re.search(r"([A-Za-z.]+)$", text[:period_index + 1])
+    if token_match is None:
+        return False
+    token = token_match.group(1)
+    lowered = token.lower()
+    if lowered in NONTERMINAL_ABBREVIATIONS:
+        return True
+    if re.fullmatch(r"(?:[A-Za-z]\.){2,}", token):
+        return True
+    return re.fullmatch(r"[A-Za-z]\.", token) is not None
+
+
+def _boundary_ranges(text, include_semicolon=False):
+    """Yield logical hard boundaries and conservative sentence boundaries."""
+    terminal_marks = ".!?" + (";" if include_semicolon else "")
+    index = 0
+    while index < len(text):
+        if text.startswith(HARD_BOUNDARY, index):
+            end = index + len(HARD_BOUNDARY)
+            while text.startswith(HARD_BOUNDARY, end):
+                end += len(HARD_BOUNDARY)
+            yield index, end
+            index = end
+            continue
+
+        mark = text[index]
+        if mark not in terminal_marks:
+            index += 1
+            continue
+        if mark == "." and _period_is_nonterminal(text, index):
+            index += 1
+            continue
+
+        after_closers = index + 1
+        while (
+            after_closers < len(text)
+            and text[after_closers] in SENTENCE_CLOSERS
+        ):
+            after_closers += 1
+        if (
+            after_closers >= len(text)
+            or not text[after_closers].isspace()
+            or text.startswith(HARD_BOUNDARY, after_closers)
+        ):
+            index += 1
+            continue
+
+        end = after_closers
+        while end < len(text) and text[end].isspace():
+            if text.startswith(HARD_BOUNDARY, end):
+                break
+            end += 1
+        if end > after_closers:
+            yield after_closers, end
+            index = end
+            continue
+        index += 1
+
+
+def _sentence_spans(buffer):
+    """Return (start, end, text) spans for sentences in a prepared buffer."""
+    boundaries = list(_boundary_ranges(buffer.text))
+    spans = []
+    start = 0
+    for boundary_start, boundary_end in boundaries:
+        raw = buffer.text[start:boundary_start]
+        candidate = raw.strip()
+        if len(WORD_RE.findall(candidate)) >= 2:
+            leading = len(raw) - len(raw.lstrip())
+            trailing = len(raw.rstrip())
+            spans.append((start + leading, start + trailing, candidate))
+        start = boundary_end
+    raw = buffer.text[start:]
+    candidate = raw.strip()
+    if len(WORD_RE.findall(candidate)) >= 2:
+        leading = len(raw) - len(raw.lstrip())
+        trailing = len(raw.rstrip())
+        spans.append((start + leading, start + trailing, candidate))
+    return spans
+
+
+def sentences_of(prose_lines):
+    """Return normalized sentence strings for legacy API callers."""
+    prepared = prepare_document("\n".join(line for line in prose_lines if line))
+    return [
+        sentence
+        for _start, _end, sentence in _sentence_spans(prepared.prose)
+    ]
+
+
+def _source_location(buffer, start, end):
+    positions = [
+        index
+        for index in range(start, end)
+        if 0 <= index < len(buffer.source_offsets)
+        and buffer.source_offsets[index] >= 0
+    ]
+    if not positions:
+        return None
+    first = positions[0]
+    last = positions[-1]
+    return {
+        "_source_start": buffer.source_offsets[first],
+        "_source_end": buffer.source_offsets[last] + 1,
+        "line": buffer.source_lines[first],
+        "column": buffer.source_columns[first],
+        "end_line": buffer.source_lines[last],
+        "end_column": buffer.source_columns[last] + 1,
+    }
+
+
+def _claim_has_source(buffer_text, start, end, source_pattern):
+    """Suppress an authority wrapper only when its own sentence has a source."""
+    left = 0
+    right = len(buffer_text)
+    for boundary_start, boundary_end in _boundary_ranges(
+        buffer_text, include_semicolon=True
+    ):
+        if boundary_end <= start:
+            left = boundary_end
+            continue
+        if boundary_start >= end:
+            right = boundary_start
+            break
+    return (
+        re.search(
+            source_pattern, buffer_text[left:right], flags=re.IGNORECASE
+        )
+        is not None
+    )
+
+
+def _iter_matches(buffer, pattern):
+    return re.finditer(
+        pattern, buffer.text, flags=re.IGNORECASE | re.MULTILINE
+    )
+
+
+def _normalize_disabled(disabled_rules):
+    disabled = frozenset(disabled_rules or ())
+    unknown = sorted(disabled - RULE_NAMES)
+    if unknown:
+        raise ValueError("unknown rule(s): " + ", ".join(unknown))
+    return disabled
+
+
+def _policy_id(disabled_rules):
+    material = RULESET_ID + "\0" + "\0".join(sorted(disabled_rules))
+    return "policy-" + hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
+
+
+def _add_finding(findings, buffer, match, layer, move, severity, fix):
+    location = _source_location(buffer, match.start(), match.end())
+    if location is None:
+        return
+    findings.append(
+        {
+            "layer": layer,
+            "move": move,
+            "match": match.group(0).strip(),
+            "severity": severity,
+            "fix": fix,
+            **location,
+        }
+    )
+
+
+def _dedupe_findings(findings):
+    """Merge overlapping regex costumes for one source occurrence."""
+    ordered = sorted(
+        findings,
+        key=lambda finding: (
+            finding["move"],
+            finding["_source_start"],
+            finding["_source_end"],
+        ),
+    )
+    deduped = []
+    cluster_move = None
+    cluster_end = -1
+    cluster_best = None
+    cluster_best_width = -1
+
+    for finding in ordered:
+        starts_new_cluster = (
+            finding["move"] != cluster_move
+            or finding["_source_start"] >= cluster_end
+        )
+        if starts_new_cluster:
+            if cluster_best is not None:
+                deduped.append(cluster_best)
+            cluster_move = finding["move"]
+            cluster_end = finding["_source_end"]
+            cluster_best = finding
+            cluster_best_width = (
+                finding["_source_end"] - finding["_source_start"]
+            )
+            continue
+
+        cluster_end = max(cluster_end, finding["_source_end"])
+        finding_width = finding["_source_end"] - finding["_source_start"]
+        if finding_width > cluster_best_width:
+            cluster_best = finding
+            cluster_best_width = finding_width
+
+    if cluster_best is not None:
+        deduped.append(cluster_best)
+    return deduped
+
+
+def _verdict_for(findings, density, word_count):
+    high_count = sum(
+        finding["severity"] == "high" for finding in findings
+    )
+    finding_count = len(findings)
+    if finding_count == 0:
+        return "clean"
+    # A per-1k rate is unstable on short copy. Keep the measured density, but
+    # assign its label from occurrence counts until the rate has a base.
+    if word_count < RATE_FLOOR_WORDS:
+        if high_count >= 3 or finding_count >= 6:
+            return "heavy slop"
+        if high_count >= 1 or finding_count >= 3:
+            return "slop present"
+        return "mostly clean"
+    if density < 4:
+        return "mostly clean"
+    if density < 10:
+        return "slop present"
+    return "heavy slop"
+
+
+def scan_text(text, name="<text>", disabled_rules=None):
+    """Scan a string and return a deterministic report dictionary."""
+    disabled = _normalize_disabled(disabled_rules)
+    prepared = prepare_document(text)
+    findings = []
+
+    # Physical line breaks inside a Markdown paragraph are soft wrapping, not
+    # rhetorical boundaries. The prepared lint buffer preserves only logical
+    # paragraph and structural boundaries, so anchored rules cannot fire on an
+    # arbitrary wrap and citations remain attached to the claim they source.
+    for buffer in (prepared.lint,):
+        for lex_name, pattern, severity, fix in LEXICAL:
+            if lex_name in disabled:
+                continue
+            for match in _iter_matches(buffer, pattern):
+                _add_finding(
+                    findings, buffer, match, 1, lex_name, severity, fix
+                )
+        for move in MOVES:
+            if move["name"] in disabled:
+                continue
+            for pattern in move["patterns"]:
+                for match in _iter_matches(buffer, pattern):
+                    if move.get("skip_if") and _claim_has_source(
+                        buffer.text,
+                        match.start(),
+                        match.end(),
+                        move["skip_if"],
+                    ):
+                        continue
+                    _add_finding(
+                        findings,
+                        buffer,
+                        match,
+                        2,
+                        move["name"],
+                        move["severity"],
+                        move["edit_rule"],
+                    )
+
+    findings = _dedupe_findings(findings)
+
+    # ---- Layer 3 ----
+    prose_text = prepared.prose.text
+    words = WORD_RE.findall(prose_text)
+    word_count = len(words)
+    rate_denominator = max(word_count, 1)
+    sentence_spans = _sentence_spans(prepared.prose)
+    sentences = [
+        sentence for _start, _end, sentence in sentence_spans
+    ]
+    metrics = {"words": word_count, "sentences": len(sentences)}
+
+    if len(sentences) >= 8:
+        lengths = [len(WORD_RE.findall(sentence)) for sentence in sentences]
+        mean = statistics.mean(lengths)
+        deviation = statistics.pstdev(lengths)
+        metrics["mean_sentence_len"] = round(mean, 1)
+        metrics["cadence_cv"] = (
+            round(deviation / mean, 3) if mean else 0.0
+        )
+    metrics["emdash_per_1k"] = round(
+        prose_text.count("—") * 1000 / rate_denominator, 2
+    )
+    triads = re.findall(
+        r",\s+[^,.;:\n]{2,50},\s+(?:and|or)\s+", prose_text
+    )
+    metrics["triad_per_1k"] = round(
+        len(triads) * 1000 / rate_denominator, 2
+    )
+
+    source_sentence = {}
+    for sentence_index, (start, end, _sentence) in enumerate(sentence_spans):
+        for buffer_index in range(start, end):
+            source_offset = prepared.prose.source_offsets[buffer_index]
+            if source_offset >= 0:
+                source_sentence[source_offset] = sentence_index
+    sentences_with_moves = set()
+    for finding in findings:
+        if finding["layer"] != 2:
+            continue
+        for source_offset in range(
+            finding["_source_start"], finding["_source_end"]
+        ):
+            sentence_index = source_sentence.get(source_offset)
+            if sentence_index is not None:
+                sentences_with_moves.add(sentence_index)
+    if sentences:
+        metrics["sentences_with_moves_pct"] = round(
+            100.0 * len(sentences_with_moves) / len(sentences), 1
+        )
+
+    antithesis_count = sum(
+        finding["move"] == "manufactured-antithesis"
+        for finding in findings
+    )
+    metrics["antithesis_per_1k"] = round(
+        antithesis_count * 1000 / rate_denominator, 2
+    )
+    style_hits = STYLE_MARKER_RE.findall(prose_text)
+    metrics["style_marker_count"] = len(style_hits)
+    if len(words) >= 250 or len(style_hits) >= 4:
+        metrics["style_marker_per_1k"] = round(
+            len(style_hits) * 1000 / rate_denominator, 2
+        )
+
+    for metric, (medium, high, direction, message) in L3_RULES.items():
+        if metric in disabled or metric not in metrics:
+            continue
+        if metrics["words"] < RATE_FLOOR_WORDS:
+            continue
+        value = metrics[metric]
+        hit = None
+        if direction == "below":
+            if value < high:
+                hit = "high"
+            elif value < medium:
+                hit = "medium"
+        else:
+            if value > high:
+                hit = "high"
+            elif value > medium:
+                hit = "medium"
+        if hit:
+            findings.append(
+                {
+                    "layer": 3,
+                    "move": metric,
+                    "line": 0,
+                    "column": 0,
+                    "end_line": 0,
+                    "end_column": 0,
+                    "match": f"{metric}={value}",
+                    "severity": hit,
+                    "fix": message,
+                    "_source_start": -1,
+                    "_source_end": -1,
+                }
+            )
+
+    fingerprint = {
+        "scanner_version": SCANNER_VERSION,
+        "fingerprint_schema": FINGERPRINT_SCHEMA_VERSION,
+        "ruleset_id": RULESET_ID,
+        "policy_id": _policy_id(disabled),
+        "disabled_rules": sorted(disabled),
+        "ignored_line_count": len(prepared.ignored_lines),
+        "ignored_lines": list(prepared.ignored_lines),
+        **metrics,
+    }
+    for move in MOVES:
+        count = sum(
+            finding["move"] == move["name"] for finding in findings
+        )
+        fingerprint[f"mv_{move['name']}_per_1k"] = (
+            round(count * 1000 / word_count, 2)
+            if word_count
+            else None
+        )
+
+    weight = sum(SEV_WEIGHT[finding["severity"]] for finding in findings)
+    density = (
+        round(weight * 1000 / word_count, 2)
+        if word_count
+        else None
+    )
+    severity_counts = {
+        severity: sum(
+            finding["severity"] == severity for finding in findings
+        )
+        for severity in ("high", "medium", "low")
+    }
+    verdict = _verdict_for(findings, density, len(words))
+    findings.sort(
+        key=lambda finding: (
+            SEV_ORDER[finding["severity"]],
+            finding["layer"],
+            finding["line"],
+            finding["column"],
+        )
+    )
+    for finding in findings:
+        finding.pop("_source_start", None)
+        finding.pop("_source_end", None)
+    return {
+        "file": str(name),
+        "verdict": verdict,
+        "density": density,
+        "high": severity_counts["high"],
+        "severity_counts": severity_counts,
+        "findings": findings,
+        "ignored_lines": list(prepared.ignored_lines),
+        "fingerprint": fingerprint,
+    }
+
+
+def scan_file(path, disabled_rules=None):
+    path = Path(path)
+    size = path.stat().st_size
+    if size > MAX_FILE_BYTES:
+        raise OSError(
+            f"file exceeds {MAX_FILE_BYTES} byte limit ({size} bytes): {path}"
+        )
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return scan_text(text, name=path, disabled_rules=disabled_rules)
+
+
+class _UsageError(Exception):
+    pass
+
+
+class _ScanArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        print(f"{self.prog}: error: {message}", file=sys.stderr)
+        raise _UsageError(message)
+
+
+def _scan_parser(prog="slop scan"):
+    parser = _ScanArgumentParser(prog=prog)
+    parser.add_argument("paths", nargs="+", help="Markdown or plain-text path")
+    parser.add_argument(
+        "--severity",
+        choices=("high", "medium", "low"),
+        help="show only this severity; does not change the gate",
+    )
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="JSON report")
+    output.add_argument(
+        "--fingerprint",
+        action="store_true",
+        help="fingerprint vectors as JSON",
+    )
+    parser.add_argument(
+        "--fail-on",
+        choices=FAIL_LEVELS,
+        default="high",
+        help="gate threshold; never is an explicit output-only scan",
+    )
+    parser.add_argument(
+        "--disable",
+        action="append",
+        default=[],
+        metavar="RULE",
+        help="disable a registered rule; repeat to disable more",
+    )
+    return parser
+
+
+def _collect_paths(raw_paths):
+    paths = []
+    seen = set()
+
+    def add_path(path):
+        key = path.resolve()
+        if key in seen:
+            return
+        seen.add(key)
+        paths.append(path)
+        if len(paths) > MAX_INPUT_FILES:
+            raise OSError(
+                f"input exceeds {MAX_INPUT_FILES} file limit"
+            )
+
+    for raw_path in raw_paths:
+        path = Path(raw_path)
+        if not path.exists():
+            raise OSError(f"path does not exist: {path}")
+        if path.is_dir():
+            discovered = []
+            for candidate in path.rglob("*"):
+                if (
+                    candidate.is_file()
+                    and not candidate.is_symlink()
+                    and candidate.suffix.lower() in SUPPORTED_EXTENSIONS
+                ):
+                    discovered.append(candidate)
+                    if len(discovered) > MAX_INPUT_FILES:
+                        raise OSError(
+                            f"input exceeds {MAX_INPUT_FILES} file limit"
+                        )
+            if not discovered:
+                raise OSError(
+                    "directory has no supported prose files "
+                    f"({', '.join(sorted(SUPPORTED_EXTENSIONS))}): {path}"
+                )
+            for candidate in sorted(discovered):
+                add_path(candidate)
+        elif path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            raise OSError(
+                f"unsupported file type {path.suffix or '<none>'}: {path}; "
+                f"supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+            )
+        else:
+            add_path(path)
+
+    total_bytes = 0
+    for path in paths:
+        size = path.stat().st_size
+        if size > MAX_FILE_BYTES:
+            raise OSError(
+                f"file exceeds {MAX_FILE_BYTES} byte limit "
+                f"({size} bytes): {path}"
+            )
+        total_bytes += size
+        if total_bytes > MAX_TOTAL_BYTES:
+            raise OSError(
+                f"input exceeds {MAX_TOTAL_BYTES} aggregate byte limit "
+                f"({total_bytes} bytes)"
+            )
+    return paths
+
+
+def _gate_count(reports, fail_on):
+    if fail_on == "never":
         return 0
-    if "--json" in flags:
-        print(json.dumps(reports, indent=2))
-        return min(sum(r["high"] for r in reports), 100)
+    severities = {"high"} if fail_on == "high" else {"high", "medium"}
+    return sum(
+        1
+        for report in reports
+        for finding in report["findings"]
+        if finding["severity"] in severities
+    )
 
-    total_high = 0
-    for r in reports:
-        total_high += r["high"]
-        print(f"\n{'='*72}\n{r['file']}")
-        print(f"verdict: {r['verdict'].upper()}   density: {r['density']} weighted hits / 1k words   high-severity: {r['high']}")
-        shown = [f for f in r["findings"] if not sev_only or f["severity"] == sev_only]
-        for f in shown:
-            loc = f"L{f['line']}" if f["line"] else "doc"
-            print(f"  [{f['severity']:<6}] {loc:>5}  ({f['move']})  “{f['match'][:70]}”")
-            print(f"           fix: {f['fix']}")
-        fp = r["fingerprint"]
-        keys = ["words", "sentences", "mean_sentence_len", "cadence_cv",
-                "emdash_per_1k", "triad_per_1k", "move_ratio_pct",
-                "antithesis_per_1k", "style_marker_count", "style_marker_per_1k"]
-        line = "  ".join(f"{k}={fp[k]}" for k in keys if k in fp)
+
+def run(argv, prog="slop scan"):
+    parser = _scan_parser(prog)
+    try:
+        options = parser.parse_args(argv)
+    except _UsageError:
+        return 2
+    except SystemExit as exc:
+        return int(exc.code)
+
+    try:
+        disabled = _normalize_disabled(options.disable)
+    except ValueError as exc:
+        parser.print_usage(sys.stderr)
+        print(f"{prog}: error: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        paths = _collect_paths(options.paths)
+        reports = [
+            scan_file(path, disabled_rules=disabled) for path in paths
+        ]
+    except (OSError, UnicodeError) as exc:
+        print(f"{prog}: input error: {exc}", file=sys.stderr)
+        return 3
+
+    gate_count = _gate_count(reports, options.fail_on)
+    gate_failed = gate_count > 0
+    metadata = {
+        "mode": "fingerprint" if options.fingerprint else "report",
+        "fail_on": options.fail_on,
+        "gate_failed": gate_failed,
+        "gate_findings": gate_count,
+        "ruleset_id": RULESET_ID,
+        "policy_id": _policy_id(disabled),
+        "disabled_rules": sorted(disabled),
+    }
+
+    if options.fingerprint:
+        print(
+            json.dumps(
+                {
+                    **metadata,
+                    "files": {
+                        report["file"]: report["fingerprint"]
+                        for report in reports
+                    },
+                },
+                indent=2,
+            )
+        )
+        return 1 if gate_failed else 0
+    if options.json:
+        print(json.dumps({**metadata, "reports": reports}, indent=2))
+        return 1 if gate_failed else 0
+
+    gate_label = "FAIL" if gate_failed else "PASS"
+    for report in reports:
+        print(f"\n{'=' * 72}\n{report['file']}")
+        counts = report["severity_counts"]
+        density_label = (
+            "n/a"
+            if report["density"] is None
+            else str(report["density"])
+        )
+        print(
+            f"verdict: {report['verdict'].upper()}   "
+            f"density: {density_label} weighted hits / 1k words   "
+            f"high: {counts['high']}   medium: {counts['medium']}   "
+            f"gate: {gate_label} (fail-on: {options.fail_on})"
+        )
+        if report["ignored_lines"]:
+            ignored = ", ".join(
+                f"L{entry['line']} ({'/'.join(entry['tokens'])})"
+                for entry in report["ignored_lines"]
+            )
+            print(f"  ignored lines: {ignored}")
+        shown = [
+            finding
+            for finding in report["findings"]
+            if not options.severity
+            or finding["severity"] == options.severity
+        ]
+        for finding in shown:
+            if finding["line"]:
+                location = f"L{finding['line']}"
+                if finding["end_line"] != finding["line"]:
+                    location += f"-{finding['end_line']}"
+            else:
+                location = "doc"
+            print(
+                f"  [{finding['severity']:<6}] {location:>9}  "
+                f"({finding['move']})  “{finding['match'][:70]}”"
+            )
+            print(f"               fix: {finding['fix']}")
+        fingerprint = report["fingerprint"]
+        keys = [
+            "words",
+            "sentences",
+            "mean_sentence_len",
+            "cadence_cv",
+            "emdash_per_1k",
+            "triad_per_1k",
+            "sentences_with_moves_pct",
+            "antithesis_per_1k",
+            "style_marker_count",
+            "style_marker_per_1k",
+        ]
+        line = "  ".join(
+            f"{key}={fingerprint[key]}"
+            for key in keys
+            if key in fingerprint
+        )
         print(f"  fingerprint: {line}")
-    return min(total_high, 100)
+        print(
+            f"  policy: {fingerprint['policy_id']} "
+            f"(ruleset: {fingerprint['ruleset_id']}; "
+            f"scanner: {fingerprint['scanner_version']})"
+        )
+    return 1 if gate_failed else 0
 
 
 if __name__ == "__main__":

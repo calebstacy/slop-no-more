@@ -1,6 +1,21 @@
 """slop-no-more: deterministic, explainable, zero-model prose linting."""
 
-from .scanner import scan_file, scan_text, MOVES, LEXICAL, L3_RULES
+from .scanner import (
+    L3_RULES,
+    LEXICAL,
+    MOVES,
+    SCANNER_VERSION,
+    scan_file,
+    scan_text,
+)
 
-__version__ = "0.1.0"
-__all__ = ["scan_file", "scan_text", "MOVES", "LEXICAL", "L3_RULES", "__version__"]
+__version__ = SCANNER_VERSION
+__all__ = [
+    "scan_file",
+    "scan_text",
+    "MOVES",
+    "LEXICAL",
+    "L3_RULES",
+    "SCANNER_VERSION",
+    "__version__",
+]
