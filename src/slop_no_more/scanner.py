@@ -1517,7 +1517,8 @@ def run(argv, prog="slop scan"):
         print(f"  fingerprint: {line}")
         print(
             f"  policy: {fingerprint['policy_id']} "
-            f"(ruleset: {fingerprint['ruleset_id']})"
+            f"(ruleset: {fingerprint['ruleset_id']}; "
+            f"scanner: {fingerprint['scanner_version']})"
         )
     return 1 if gate_failed else 0
 

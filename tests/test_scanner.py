@@ -698,7 +698,9 @@ def test_cli_reports_inline_ignore_exceptions_in_every_output_mode(
     )
 
     assert run([str(path)]) == 0
-    assert "ignored lines: L1 (slop-ignore)" in capsys.readouterr().out
+    human_output = capsys.readouterr().out
+    assert "ignored lines: L1 (slop-ignore)" in human_output
+    assert f"scanner: {SCANNER_VERSION}" in human_output
 
     assert run([str(path), "--json"]) == 0
     json_output = capsys.readouterr().out
