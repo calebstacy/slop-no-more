@@ -13,9 +13,12 @@ Usage:
   slop scan <path> --severity high    only high-severity findings
   slop scan <path> --json             machine-readable output
   slop scan <path> --fingerprint      fingerprint vector only (JSON)
+  slop scan <path> --fail-on medium   gate on medium and high findings
+  slop scan <path> --fail-on never    output only; never fail the gate
+  slop scan <path> --disable RULE     disable a registered rule
   slop --version
 
-Exit code = number of high-severity findings (capped at 100), so CI can gate.
+Exit codes: 0 pass, 1 gate failure, 2 usage error, 3 input/read error.
 """.format(v=__version__)
 
 
@@ -28,8 +31,10 @@ def main(argv=None):
         print(f"slop-no-more {__version__}")
         return 0
     if argv[0] == "scan":
-        argv = argv[1:]
-    return run(argv)
+        return run(argv[1:], prog="slop scan")
+    print(f"slop: unknown command: {argv[0]}", file=sys.stderr)
+    print(USAGE, file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

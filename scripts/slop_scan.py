@@ -13,4 +13,4 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from slop_no_more.scanner import run  # noqa: E402
 
 if __name__ == "__main__":
-    sys.exit(run(sys.argv[1:]))
+    sys.exit(run(sys.argv[1:], prog="python scripts/slop_scan.py"))

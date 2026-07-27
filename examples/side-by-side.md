@@ -1,61 +1,57 @@
-# Side by side: the same prompt through three pipelines
+# Side by side across three pipelines
 
 The same prompt went through three different pipelines on two frontier
-models. This is a comparison of setups you could run today, and the point is
-what each one ships. Everything below is a real captured output, unedited
-except where the repair trail says exactly what changed. Every number comes
-from the scanner in this repo.
+models. Everything below is a captured output. It is unedited except where the
+repair trail says exactly what changed. This is a worked specimen, not a
+benchmark: one generation per cell cannot establish a model pass rate,
+compare providers generally or validate the scanner's thresholds.
 
 **The pipelines.**
 
 - **Bare model.** The default: a prompt goes in, the draft goes out, nothing
   checks it.
-- **Instructions only.** The same model with the rules riding along in the
-  prompt: the skill's full constraint block, prepended. This is the pipeline
-  that prompt packs and system-prompt style guides sell, and it is where
-  most anti-slop tooling stops. Nothing checks the output.
-- **The skill's loop.** What this repo installs: the same instructions, then
-  the scanner, then the edit rule attached to each finding, then a rescan.
-  The model drafts; the gate decides.
+- **Instructions only.** The skill's constraint block is prepended to the same
+  model prompt. Nothing checks the output.
+- **Scan-guided repair.** The same instructions, followed by the scanner, a
+  human-directed application of the attached edit rules and a rescan. The
+  scanner detects configured forms; an editor or model performs the repair.
 
 **Protocol.** Run 2026-07-23 against `gpt-5.5-2026-04-23` (OpenAI API) and
 `claude-sonnet-5` (Anthropic API). Raw API calls, no system prompt, default
 sampling, one generation per cell, word counts near 300 so the distribution
-metrics have enough text to rate. The constraint block is in the appendix.
+metrics had enough text to rate. The constraint block is in the appendix.
+The recorded scores came from scanner commit `b3fa642`; later rulesets can
+produce different findings.
 
 **The prompt.** "Write a short blog post, roughly 300 words, announcing that
 your team just launched an AI-powered analytics dashboard."
 
 ## Scoreboard
 
-| Model | Bare model | Instructions only | The skill's loop |
+| Model | Bare model | Instructions only | Scan-guided repair |
 |---|---|---|---|
 | gpt-5.5 | 38.83 · HEAVY SLOP | 36.21 · HEAVY SLOP | 0.00 · CLEAN |
 | claude-sonnet-5 | 49.18 · HEAVY SLOP | 42.86 · HEAVY SLOP | 0.00 · CLEAN |
 
-Densities are weighted hits per 1,000 words. The middle column is the
-industry's current answer, and it barely moves the number. Instructions
-raise the pass rate. The test enforces.
+Densities are weighted configured occurrences per 1,000 words. The labels are
+the scanner's density bands, not quality grades or authorship verdicts. In
+these two runs, adding instructions changed the drafts without removing every
+configured pattern. The scan-guided revisions contained none of the patterns
+recognized by that ruleset.
 
-## What instructions alone buy you
+## What changed in these specimens
 
-The instructions-only drafts are much better texts than the bare ones. Both
-models invented a named speaker with a stake, concrete mechanism, an honest
-limitation and a real request for feedback. Substance transformed. The
-machine rhythms survived anyway: Claude used four em dashes immediately
-after an instruction that said no em dashes, and GPT blew through a
-one-triad budget five times. Both models violated constraints they had just
-been handed, inside the same response. That is the design fact this tool is
-built on, and it showed up on the first take. A rules-in-the-prompt pipeline
-has no way to notice; the drafts read fine and shipped as fine, and only the
-scanner said otherwise.
+The instructions-only drafts added a named speaker, concrete mechanisms, a
+limitation and a request for feedback. Configured forms remained: Claude used
+four em dashes after an instruction that prohibited them, and GPT exceeded the
+declared one-triad budget five times. Those are observations about these
+outputs. Without a separate post-draft check, the pipeline has no mechanism to
+surface the violations.
 
-One more honest note: given no real product facts, a constrained model
-invents specific fiction. "Lena Ortiz at Brightlane" and "Priya at Fernwood"
-below do not exist; the constraints demand a named actor and the model
-obliges with an invented one. The skill's build mode says to start from real
-material for exactly this reason. Constraints shape the prose; they cannot
-supply the facts.
+One more honest note: the prompt supplied no real product facts. The outputs
+invented `Lena Ortiz at Brightlane` and `Priya at Fernwood`; neither exists.
+The constraint requested a named actor, and the models supplied fictional
+ones. Constraints shape prose. They do not supply evidence.
 
 ---
 
@@ -259,12 +255,16 @@ Scanner: CLEAN, 0.00. Zero findings of any severity.
 ## Reproduce it
 
 The constraint block below is the exact text prepended in the
-instructions-only and loop pipelines. Swap in any model you have API access
-to; the scanner side needs no key at all:
+instructions-only and scan-guided pipelines. Swap in any model you have API
+access to; the scanner side needs no key:
 
 ```bash
-python3 scripts/slop_scan.py your_output.txt
+python3 scripts/slop_scan.py your_output.txt --fail-on never
 ```
+
+That command reports the current ruleset. It does not reproduce the historical
+model generation, which used default sampling, or guarantee the 2026-07-23
+score under a later catalog.
 
 <details>
 <summary>The constraint block (SKILL.md build mode, distilled)</summary>
