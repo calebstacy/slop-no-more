@@ -277,6 +277,15 @@ def test_launch_post_catch_2026_07_23():
         "Moves are the layer worth policing, because moves generate claims.")
 
 
+def test_readme_dogfood_catch_2026_07_27():
+    assert "anaphoric-evaluation" in moves_found(
+        "That distinction is the point."
+    )
+    assert "anaphoric-evaluation" not in moves_found(
+        "That distinction is required by the API."
+    )
+
+
 def test_wild_catch_costumes_2026_07_23():
     # first wild specimen (a LinkedIn collaborative article) taught these
     assert "transition-turnstile" in moves_found(
