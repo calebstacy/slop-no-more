@@ -98,15 +98,16 @@ sentence.
 
 ## 2. anaphoric-evaluation (high)
 
-**Definition.** The mirror of cataphoric-evaluation: a clause hung off the end
-of a sentence that rates the content it trails rather than adding to it. The
-sentence finishes, and then a tag tells the reader the sentence mattered.
+**Definition.** An evaluative clause or sentence that points backward and
+rates preceding content rather than adding information. It may hang off the
+prior sentence or follow as a standalone verdict.
 
 **Costumes observed.** "Neither survived contact with somebody who had never
 held a controller, which is the only test that counted." (portfolio VR case,
 human catch 2026-07-25) · "which is the point" · "which is what mattered" ·
-"and that's the point" · "which was exactly the problem" · "which is the part
-that matters"
+"and that's the point" · "That distinction is the point." (README dogfood
+catch 2026-07-27) · "which was exactly the problem" · "which is the part that
+matters"
 
 **Why it damages the argument.** Significance is a thing a sentence
 demonstrates, not a rating appended to it. The tag also tends to arrive exactly
@@ -599,8 +600,8 @@ selecting the specific cases the argument needs.
 "spanning X to Y" · "across a wide range of" · "a broad array of"
 
 **Why it damages the argument.** Breadth can impersonate evidence. The sweep
-suggests the writer has surveyed the territory, but often no selection
-principle exists. The result is a panoramic sentence where a case should be.
+lists a range without explaining why those cases belong. The result is a
+panoramic sentence where a case should be.
 
 **Instruction.** Do not gesture at coverage. Choose the cases that bear the
 claim and say why those cases matter.

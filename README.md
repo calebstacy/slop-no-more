@@ -14,9 +14,8 @@ configured pattern is present. It is not proof of who wrote the text, whether
 the writing is good or whether a clause is performing a particular rhetorical
 function.
 
-That distinction is the point. A reviewer still decides which policy to adopt.
-Once the decision exists, the scanner makes it difficult to ignore by
-accident.
+A reviewer decides which policy to adopt. The scanner makes the adopted policy
+difficult to ignore by accident.
 
 Three layers run on every scan:
 

@@ -36,7 +36,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-SCANNER_VERSION = "0.2.0"
+SCANNER_VERSION = "0.2.1"
 
 # --------------------------------------------------------------------------
 # Layer 2: the move catalog.
@@ -82,7 +82,7 @@ MOVES = [
     },
     {
         "name": "anaphoric-evaluation",
-        "definition": "The mirror of cataphoric-evaluation: a clause hung off the end of a sentence that rates the content it trails ('which is the only test that counted', 'and that is the point') rather than adding to it. The sentence finishes, then tells the reader the sentence mattered.",
+        "definition": "An evaluative clause or sentence that points backward and rates preceding content ('which is the only test that counted', 'that distinction is the point') rather than adding information.",
         "severity": "high",
         "edit_rule": "Delete the trailing clause. If the fact it gestures at is real, state it: name the test, say who failed it, give the number. Significance is what the sentence demonstrates, not a rating appended to it.",
         "patterns": [
@@ -97,6 +97,8 @@ MOVES = [
             r"[,—–]\s+and\s+that(?:'s|’s|\s+is|\s+was)\s+what\s+(?:count|matter)\w*",
             # "…, which is the part that matters."
             r",\s+which\s+(?:is|was)\s+the\s+(?:part|piece|bit)\s+that\s+(?:count|matter)\w*",
+            # "That distinction is the point."
+            r"(?m)^(?:That|This)\s+(?:distinction|difference|contrast|boundary|separation)\s+(?:is|was)\s+(?:exactly\s+)?(?:the\s+)?(?:whole\s+)?point\b",
         ],
     },
     {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-07-27)
+
+- Removed a self-announcing transition from the README and added its surface
+  form to `anaphoric-evaluation` after the project's own copy exposed the
+  missing costume.
+
 ## 0.2.0 (2026-07-27)
 
 Soundness release: the public contract now matches what the deterministic
